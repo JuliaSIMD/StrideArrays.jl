@@ -1,5 +1,5 @@
 
-using PaddedMatrices, StaticArrays, LinearAlgebra, BenchmarkTools
+using StrideArrays, StaticArrays, LinearAlgebra, BenchmarkTools
 
 # BLAS.set_num_threads(1)
 
@@ -65,19 +65,19 @@ using DataFrames, VegaLite
 gflops = @. 2e-9 * (sizerange) ^ 3 / br;
 
 df = DataFrame(gflops);
-matmulmethodnames = [:SMatrix, :MMatrix, :StrideArray, :PtrArray, :jmul!];
+matmulmethodnames = [:SMatrix, :MMatrix, :StrideArray, :PtrArray, :matmul!];
 rename!(df, matmulmethodnames);
 df.Size = sizerange
 
 function pick_suffix(desc = "")
-    suffix = if PaddedMatrices.VectorizationBase.AVX512F
+    suffix = if StrideArrays.VectorizationBase.AVX512F
         "AVX512"
-    elseif PaddedMatrices.VectorizationBase.AVX2
+    elseif StrideArrays.VectorizationBase.AVX2
         "AVX2"
-    elseif PaddedMatrices.VectorizationBase.REGISTER_SIZE == 32
+    elseif StrideArrays.VectorizationBase.REGISTER_SIZE == 32
         "AVX"
     else
-        "REGSUZE$(PaddedMatrices.VectorizationBase.REGISTER_SIZE)"
+        "REGSUZE$(StrideArrays.VectorizationBase.REGISTER_SIZE)"
     end
     if desc != ""
         suffix *= '_' * desc
@@ -87,7 +87,7 @@ end
 
 dfs = stack(df, matmulmethodnames, variable_name = :MatMulType, value_name = :GFLOPS);
 p = dfs |> @vlplot(:line, x = :Size, y = :GFLOPS, width = 900, height = 600, color = {:MatMulType});
-save(joinpath(pkgdir(PaddedMatrices), "docs/src/assets/sizedarraybenchmarks_$(pick_suffix()).svg"), p)
+save(joinpath(pkgdir(StrideArrays), "docs/src/assets/sizedarraybenchmarks_$(pick_suffix()).svg"), p)
 
 
 
