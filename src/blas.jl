@@ -278,6 +278,7 @@ end
     Cb = preserve_buffer(C); Ab = preserve_buffer(A); Bb = preserve_buffer(B);
     GC.@preserve Cb Ab Bb begin
         if (nᵣ ≥ N) || (M*K*N < (StaticInt{13824}() * W))
+        # if (nᵣ ≥ N) #|| (M*K*N < (StaticInt{13824}() * W))
             loopmul!(pC, pA, pB, α, β, M, K, N)
             return C
         end
@@ -293,6 +294,7 @@ end
         end
         # We are threading, but how many threads?
         L = StaticInt{128}() * W
+        # L = StaticInt{64}() * W
         nspawn = clamp(div_fast(M * N, L), 1, _nthread)
         _matmul!(pC, pA, pB, α, β, nspawn, M, K, N)
         return C
