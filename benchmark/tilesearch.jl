@@ -71,27 +71,27 @@ function gflop_map(Cs, As, Bs, ::Val{W₁}, ::Val{W₂}, ::Val{R₁}, ::Val{R₂
     gflops
 end
 
-function gridsearch(
-    CsAsBs = matrix_range(1_500, 10_000, 100), w₁range = 0.012:0.0005:0.013, w₂range = 0.024:0.001:0.026, r₁range = 0.44:0.01:0.5, r₂range = 0.75:0.025:0.8
-)
-    search_space = Iterators.product(w₁range, w₂range, r₁range, r₂range)
-    best = Ref(((0.0,0.0),(0.0,0.0),-Inf))
-    gflop_array = let (Cs,As,Bs) = CsAsBs, iter_prod = search_space, p = Progress(length(iter_prod)), best = best
-        map(iter_prod) do (W₁, W₂, R₁, R₂)
-            gflops = bench_size(Cs, As, Bs, Val(W₁), Val(W₂), Val(R₁), Val(R₂))
-            b = best[]
-            recent = ((M_c, K_c, N_c), (R₂, R₃), gflops)
-            bb = if last(b) > gflops
-                b
-            else
-                best[] = recent
-            end
-            ProgressMeter.next!(p, showvalues = [(:Last, recent), (:Best, bb)])
-            gflops
-        end
-    end
-    gflop_array, best
-end
+# function gridsearch(
+#     CsAsBs = matrix_range(1_500, 10_000, 100), w₁range = 0.012:0.0005:0.013, w₂range = 0.024:0.001:0.026, r₁range = 0.44:0.01:0.5, r₂range = 0.75:0.025:0.8
+# )
+#     search_space = Iterators.product(w₁range, w₂range, r₁range, r₂range)
+#     best = Ref(((0.0,0.0),(0.0,0.0),-Inf))
+#     gflop_array = let (Cs,As,Bs) = CsAsBs, iter_prod = search_space, p = Progress(length(iter_prod)), best = best
+#         map(iter_prod) do (W₁, W₂, R₁, R₂)
+#             gflops = bench_size(Cs, As, Bs, Val(W₁), Val(W₂), Val(R₁), Val(R₂))
+#             b = best[]
+#             recent = ((M_c, K_c, N_c), (R₂, R₃), gflops)
+#             bb = if last(b) > gflops
+#                 b
+#             else
+#                 best[] = recent
+#             end
+#             ProgressMeter.next!(p, showvalues = [(:Last, recent), (:Best, bb)])
+#             gflops
+#         end
+#     end
+#     gflop_array, best
+# end
 
 
 
@@ -232,7 +232,7 @@ function matmul_objective(params)
 end
 
 using Optim
-days = 60*60*24.0
+hours = 60.0*60.0; days = 24hours;
 init = [StrideArrays.W₁Default, StrideArrays.W₂Default, StrideArrays.R₁Default, StrideArrays.R₂Default]
 # init = [0.0125, 0.025, 0.6275, 0.9579]
 # init = [0.0060790786747738235, 0.4531988431700635, 0.47560416900859487, 0.6776801310495106]
