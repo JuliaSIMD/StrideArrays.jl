@@ -219,7 +219,7 @@ T = Float64
 min_size = round(Int, sqrt(0.65 * StrideArrays.VectorizationBase.CACHE_SIZE[3] / sizeof(T)))
 max_size = round(Int, sqrt( 32  * StrideArrays.VectorizationBase.CACHE_SIZE[3] / sizeof(T)))
 
-SR = size_range(10_000, 1_500, 100);
+SR = size_range(max_size, min_size, 100);
 const CsConst, AsConst, BsConst = matrix_range(SR, T);
 
 function matmul_objective(params)
