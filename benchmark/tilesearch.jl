@@ -1,14 +1,14 @@
 
 
-using PaddedMatrices, VectorizationBase, ProgressMeter
-using PaddedMatrices: StaticFloat
+using StrideArrays, VectorizationBase, ProgressMeter
+using StrideArrays: StaticFloat
 function jmultpackab!(C, A, B, ::Val{W₁}, ::Val{W₂}, ::Val{R₁}, ::Val{R₂}) where {W₁, W₂, R₁, R₂}
     M, N = size(C); K = size(B,1)
-    zc, za, zb = PaddedMatrices.zstridedpointer.((C,A,B))
+    zc, za, zb = StrideArrays.zstridedpointer.((C,A,B))
     @elapsed(
-        PaddedMatrices.jmultpackAB!(
-            zc, za, zb, StaticInt{1}(), StaticInt{0}(), M, K, N, PaddedMatrices.CloseOpen(0, VectorizationBase.NUM_CORES),
-            StaticFloat{W₁}(), StaticFloat{W₂}(), StaticFloat{R₁}(), StaticFloat{R₂}(), Val{VectorizationBase.CACHE_COUNT[3]}()
+        StrideArrays.jmultpackAB!(
+            zc, za, zb, StaticInt{1}(), StaticInt{0}(), M, K, N, VectorizationBase.NUM_CORES,
+            StaticFloat{W₁}(), StaticFloat{W₂}(), StaticFloat{R₁}(), StaticFloat{R₂}()
         )
     )
 end
@@ -21,7 +21,7 @@ function bench_size(Cs, As, Bs, ::Val{W₁}, ::Val{W₂}, ::Val{R₁}, ::Val{R�
     end
     gflop = 0.0
     for (C,A,B) ∈ zip(Cs,As,Bs)
-        M, K, N = PaddedMatrices.matmul_sizes(C, A, B)
+        M, K, N = StrideArrays.matmul_sizes(C, A, B)
         # sleep(0.5)
         t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
         gf = 2e-9M*K*N / t
@@ -64,7 +64,7 @@ function gflop_map(Cs, As, Bs, ::Val{W₁}, ::Val{W₂}, ::Val{R₁}, ::Val{R₂
     end
     gflops = Vector{Float64}(undef, length(Cs))
     for (i,C,A,B) ∈ zip(eachindex(gflops),Cs,As,Bs)
-        M, K, N = PaddedMatrices.matmul_sizes(C, A, B)
+        M, K, N = StrideArrays.matmul_sizes(C, A, B)
         t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
         gflops[i] = 2e-9M*K*N / t
     end
@@ -109,12 +109,12 @@ end
 
 
 
-gflops_range = gflop_map(CsConst, AsConst, BsConst, Val{PaddedMatrices.W₁Default}(), Val{PaddedMatrices.W₂Default}(), Val{PaddedMatrices.R₁Default}(), Val{PaddedMatrices.R₂Default}());
+# gflops_range = gflop_map(CsConst, AsConst, BsConst, Val{StrideArrays.W₁Default}(), Val{StrideArrays.W₂Default}(), Val{StrideArrays.R₁Default}(), Val{StrideArrays.R₂Default}());
 
-using StatsBase, UnicodePlots
+# using StatsBase, UnicodePlots
 
-summarystats(gflops_range)
-lineplot(SR, gflops_range, title = "Square Matrix GFLOPS", xlabel = "Size", ylabel = "GFLOPS")
+# summarystats(gflops_range)
+# lineplot(SR, gflops_range, title = "Square Matrix GFLOPS", xlabel = "Size", ylabel = "GFLOPS")
 
 # S[10]
 # StatsBase.summarystats(@view(gflops_range[30:end]))
@@ -137,11 +137,11 @@ lineplot(SR, gflops_range, title = "Square Matrix GFLOPS", xlabel = "Size", ylab
 # function genmats(N)
 #     A = rand(N,N)
 #     B = rand(N,N)
-#     C = similar(A); p = PaddedMatrices.zstridedpointer
+#     C = similar(A); p = StrideArrays.zstridedpointer
 #     C, A, B, p(C), p(A), p(B)
 # end
 # C10_000,A10_000,B10_000,zc10_000,za10_000,zb10_000 = genmats(10_000);
-# @time(PaddedMatrices.jmultpackAB!(zc10_000, za10_000, zb10_000, StaticInt{1}(), StaticInt{0}(), Val(72), Val(1.875), Val(1.05), 10_000,10_000,10_000, PaddedMatrices.CloseOpen(0, 18), Val(1)))
+# @time(StrideArrays.jmultpackAB!(zc10_000, za10_000, zb10_000, StaticInt{1}(), StaticInt{0}(), Val(72), Val(1.875), Val(1.05), 10_000,10_000,10_000, StrideArrays.CloseOpen(0, 18), Val(1)))
 
 
 
@@ -198,11 +198,11 @@ lineplot(SR, gflops_range, title = "Square Matrix GFLOPS", xlabel = "Size", ylab
 # using BlackBoxOptim
 
 # # Noisy test problem
-using Random
-function randrosenbrock(x)
-  return sum( 100*( x[2:end] .- x[1:end-1].^2 ).^2 .+ ( x[1:end-1] .- 1 ).^2 ) + randexp()
-end
-# # res = compare_optimizers(randrosenbrock; SearchRange = (-5.0, 5.0), NumDimensions = 4, MaxFuncEvals = 10_000);
+# using Random
+# function randrosenbrock(x)
+#   return sum( 100*( x[2:end] .- x[1:end-1].^2 ).^2 .+ ( x[1:end-1] .- 1 ).^2 ) + randexp()
+# end
+# # # res = compare_optimizers(randrosenbrock; SearchRange = (-5.0, 5.0), NumDimensions = 4, MaxFuncEvals = 10_000);
 # # # :adaptive_de_rand_1_bin_radiuslimited performed well here and is recomended in `BlackBoxOptim`'s README
 # bboptimize(
 #     randrosenbrock;
@@ -215,10 +215,12 @@ end
 # Optim.optimize(randrosenbrock, fill(-5.0, 4), fill(5.0, 4), rand(4) .* 10 .- 5, SAMIN(), Optim.Options(iterations = 10_000))
 # Optim.optimize(randrosenbrock, rand(4) .* 10 .- 5, ParticleSwarm(lower=fill(-5.0, 4),upper=fill(5.0, 4)), Optim.Options(iterations = 10_000))
 
-
+T = Float64
+min_size = round(Int, sqrt(0.65 * StrideArrays.VectorizationBase.CACHE_SIZE[3] / sizeof(T)))
+max_size = round(Int, sqrt( 32  * StrideArrays.VectorizationBase.CACHE_SIZE[3] / sizeof(T)))
 
 SR = size_range(10_000, 1_500, 100);
-const CsConst, AsConst, BsConst = matrix_range(SR, Float64);
+const CsConst, AsConst, BsConst = matrix_range(SR, T);
 
 function matmul_objective(params)
     print("Params: ", params, "; ")
@@ -230,8 +232,8 @@ function matmul_objective(params)
 end
 
 using Optim
-days = 60*60*24
-init = [PaddedMatrices.W₁Default, PaddedMatrices.W₂Default, PaddedMatrices.R₁Default, PaddedMatrices.R₂Default]
+days = 60*60*24.0
+init = [StrideArrays.W₁Default, StrideArrays.W₂Default, StrideArrays.R₁Default, StrideArrays.R₂Default]
 # init = [0.0125, 0.025, 0.6275, 0.9579]
 # init = [0.0060790786747738235, 0.4531988431700635, 0.47560416900859487, 0.6776801310495106]
 # opt = Optim.optimize(
