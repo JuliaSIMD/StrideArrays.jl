@@ -15,7 +15,14 @@ using LoopVectorization: maybestaticsize, mᵣ, nᵣ, preserve_buffer, CloseOpen
 using ArrayInterface: StaticInt, Zero, One, OptionallyStaticUnitRange, size, strides, offsets, indices,
     static_length, static_first, static_last, axes,
     dense_dims, DenseDims, stride_rank, StrideRank
-# using Threads: @spawn
+
+using ThreadingUtilities:
+    _atomic_add!, _atomic_max!, _atomic_min!,
+    _atomic_load, _atomic_store!, _atomic_cas_cmp!,
+    SPIN, WAIT, TASK, LOCK, STUP, taskpointer,
+    wake_thread!, __wait
+
+
 # import ReverseDiffExpressionsBase:
     # RESERVED_INCREMENT_SEED_RESERVED!, ∂getindex,
     # alloc_adjoint, uninitialized, initialized, isinitialized
@@ -34,39 +41,6 @@ export @StrideArray, @gc_preserve, # @Constant,
 
 
 
-include("type_declarations.jl")
-include("staticfloats.jl")
-
-include("funcptrs.jl")
-include("threadpool.jl")
-
-include("l3_cache_buffer.jl")
-include("size_and_strides.jl")
-include("adjoints.jl")
-include("stridedpointers.jl")
-include("indexing.jl")
-include("initialization.jl")
-include("views.jl")
-include("rand.jl")
-include("blocksizes.jl")
-include("kernels.jl")
-include("blas.jl")
-include("broadcast.jl")
-include("miscellaneous.jl")
-
-
-# Commented, because I don't want this to be the only doc string.
-# """
-# To find a mode, define methods for `logdensity` and logdensity_and_gradient!` dispatching on obj, and evaluating at the position `q`.
-
-# logdensity(obj, q, [::StackPointer])
-# ∂logdensity!(∇, obj, q, [::StackPointer])
-
-# These must return a value (eg, a logdensity). logdensity_and_gradient! should store the gradient in ∇.
-# """
-function logdensity end
-function ∂logdensity! end
-
 @generated function calc_factors(::Val{nc} = Val{NUM_CORES}()) where {nc}
     t = Expr(:tuple)
     for i ∈ nc:-1:1
@@ -82,48 +56,37 @@ const BCACHE = Float64[]
 # """
 # Length is one less than `Base.nthreads()`
 # """
-const MULTASKS = Task[]
 const NTHREAD = Ref{Int}()
 _nthreads() = NTHREAD[]
 
-# function runfunc(t::Task, tid)
-#     t.sticky = true
-#     ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid)
-#     push!(@inbounds(Base.Workqueues[tid+1]), t)
-#     ccall(:jl_wakeup_thread, Cvoid, (Int16,), tid % Int16)
-#     t
-# end
-# runfunc(func, tid) = runfunc(Task(func), tid)
-# function runfunc!(ft, tid)
-#     @inbounds MULTASKS[tid] = runfunc(ft, tid)
-#     nothing
-# end
+include("type_declarations.jl")
+include("staticfloats.jl")
+include("funcptrs.jl")
+include("l3_cache_buffer.jl")
+include("size_and_strides.jl")
+include("adjoints.jl")
+include("stridedpointers.jl")
+include("indexing.jl")
+include("initialization.jl")
+include("views.jl")
+include("rand.jl")
+include("blocksizes.jl")
+include("kernels.jl")
+include("blas.jl")
+include("broadcast.jl")
+include("miscellaneous.jl")
 
 function __init__()
     resize!(BCACHE, BSIZE * BCACHE_COUNT)
     NTHREAD[] = _nt = min(nthreads(), NUM_CORES)
-    _nt -= 1
-    iszero(_nt) || resize!(MULTASKS, _nt)
-    if _nt < NUM_CORES - 1 && ("SUPPRESS_STRIDE_ARRAYS_WARNING" ∉ keys(ENV))
+    if _nt < NUM_CORES && ("SUPPRESS_STRIDE_ARRAYS_WARNING" ∉ keys(ENV))
         msg = string(
             "Your system has $NUM_CORES physical cores, but `StrideArrays.jl` only has ",
-            "$(_nt > 0 ? "$(_nt + 1) threads" : "1 thread") available.",
+            "$(_nt > 1 ? "$(_nt) threads" : "1 thread") available.",
             "For the best performance, you should start Julia with at least $(NUM_CORES) threads.",
             "",
         )
         @warn msg
-    end
-    for tid ∈ 1:_nt
-        m = MATMULLERS[tid]
-        GC.@preserve m _atomic_min!(pointer(m), SPIN)
-        t = Task(m)
-        t.sticky = true
-        ccall(:jl_set_task_tid, Cvoid, (Any, Cint), t, tid % Cint)
-        MULTASKS[tid] = t
-        wake_thread!(tid) # task should immediately sleep
-        while !_atomic_cas_cmp!(pointer(m), WAIT, WAIT)
-            pause()
-        end
     end
 end
 

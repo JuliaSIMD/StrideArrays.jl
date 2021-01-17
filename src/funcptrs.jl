@@ -1,27 +1,14 @@
-@inline function _atomic_load(p::Ptr{UInt}, offset, ::Type{T}) where {T}
-    p2 = _atomic_load(p + sizeof(UInt)*(offset += 1))
-    offset, reinterpret(T, p2)
-end
-@inline function _atomic_load(p::Ptr{UInt}, offset, ::Type{StaticInt{N}}) where {N}
-    offset, StaticInt{N}()
-end
-@inline function _atomic_load(p::Ptr{UInt}, offset, ::Type{StridedPointer{T,2,C,B,R,Tuple{X1,X2},Tuple{Zero,Zero}}}) where {T,C,B,R,X1,X2}
-    offset, ptr = _atomic_load(p, offset, Ptr{T})
-    offset, x1 = _atomic_load(p, offset, X1)
-    offset, x2 = _atomic_load(p, offset, X2)
-    offset, StridedPointer{T,2,C,B,R}(ptr, (x1,x2), (Zero(),Zero()))
-end
 
 struct LoopMulFunc{P,TC,TA,TB,Α,Β,Md,Kd,Nd} <: Function end
 function (::LoopMulFunc{P,TC,TA,TB,Α,Β,Md,Kd,Nd})(p::Ptr{UInt}) where {P,TC,TA,TB,Α,Β,Md,Kd,Nd}
-    offset, C = _atomic_load(p, 1, TC)
-    offset, A = _atomic_load(p, offset, TA)
-    offset, B = _atomic_load(p, offset, TB)
-    offset, α = _atomic_load(p, offset, Α)
-    offset, β = _atomic_load(p, offset, Β)
-    offset, M = _atomic_load(p, offset, Md)
-    offset, K = _atomic_load(p, offset, Kd)
-    offset, N = _atomic_load(p, offset, Nd)
+    offset, C = _atomic_load(p, TC, 1)
+    offset, A = _atomic_load(p, TA, offset)
+    offset, B = _atomic_load(p, TB, offset)
+    offset, α = _atomic_load(p, Α, offset)
+    offset, β = _atomic_load(p, Β, offset)
+    offset, M = _atomic_load(p, Md, offset)
+    offset, K = _atomic_load(p, Kd, offset)
+    offset, N = _atomic_load(p, Nd, offset)
     _call_loopmul!(C, A, B, α, β, M, K, N, Val{P}())
     nothing
 end
@@ -39,44 +26,31 @@ call_loopmul!(C, A, B, α, β, M, K, N, ::Val{P}) where {P} = _call_loopmul!(C, 
 
 struct SyncMulFunc{TC,TA,TB,Α,Β,Md,Kd,Nd,AP,BCP,ID,TT,W₁,W₂,R₁,R₂} <: Function end
 function (::SyncMulFunc{TC,TA,TB,Α,Β,Md,Kd,Nd,AP,BCP,ID,TT,W₁,W₂,R₁,R₂})(p::Ptr{UInt}) where {TC,TA,TB,Α,Β,Md,Kd,Nd,AP,BCP,ID,TT,W₁,W₂,R₁,R₂}
-    offset, C = _atomic_load(p, 1, TC)
-    offset, A = _atomic_load(p, offset, TA)
-    offset, B = _atomic_load(p, offset, TB)
-    offset, α = _atomic_load(p, offset, Α)
-    offset, β = _atomic_load(p, offset, Β)
-    offset, M = _atomic_load(p, offset, Md)
-    offset, K = _atomic_load(p, offset, Kd)
-    offset, N = _atomic_load(p, offset, Nd)
-    offset, atomicp = _atomic_load(p, offset, AP)
-    offset, bcachep = _atomic_load(p, offset, BCP)
-    offset, id = _atomic_load(p, offset, ID)
-    offset, total_ids = _atomic_load(p, offset, TT)
+    offset, C = _atomic_load(p, TC, 1)
+    offset, A = _atomic_load(p, TA, offset)
+    offset, B = _atomic_load(p, TB, offset)
+    offset, α = _atomic_load(p, Α, offset)
+    offset, β = _atomic_load(p, Β, offset)
+    offset, M = _atomic_load(p, Md, offset)
+    offset, K = _atomic_load(p, Kd, offset)
+    offset, N = _atomic_load(p, Nd, offset)
+    offset, atomicp = _atomic_load(p, AP, offset)
+    offset, bcachep = _atomic_load(p, BCP, offset)
+    offset, id = _atomic_load(p, ID, offset)
+    offset, total_ids = _atomic_load(p, TT, offset)
     sync_mul!(C, A, B, α, β, M, K, N, atomicp, bcachep, id, total_ids, StaticFloat{W₁}(), StaticFloat{W₂}(), StaticFloat{R₁}(), StaticFloat{R₂}())
     nothing
 end
 
-
 @generated function cfuncpointer(::T) where {T}
     precompile(T(), (Ptr{UInt},))
     quote
+        $(Expr(:meta,:inline))
         @cfunction($(T()), Cvoid, (Ptr{UInt},))
     end
 end
 
-
-@inline function _atomic_store!(p::Ptr{UInt}, x, offset)
-    _atomic_store!(p + sizeof(UInt)*(offset += 1), reinterpret(UInt, x))
-    offset
-end
-@inline function _atomic_store!(p::Ptr{UInt}, sp::StridedPointer{T,2}, offset) where {T}
-    offset = _atomic_store!(p, sp.p, offset)
-    x1, x2 = sp.strd
-    offset = _atomic_store!(p, x1, offset)
-    offset = _atomic_store!(p, x2, offset)
-end
-@inline _atomic_store!(p::Ptr{UInt}, ::StaticInt, offset) = offset
-
-function setup_matmul!(p::Ptr{UInt}, C::TC, A::TA, B::TB, α::Α, β::Β, M::Md, K::Kd, N::Nd, ::Val{P}) where {P,TC,TA,TB,Α,Β,Md,Kd,Nd}
+@inline function setup_matmul!(p::Ptr{UInt}, C::TC, A::TA, B::TB, α::Α, β::Β, M::Md, K::Kd, N::Nd, ::Val{P}) where {P,TC,TA,TB,Α,Β,Md,Kd,Nd}
     offset = _atomic_store!(p, cfuncpointer(LoopMulFunc{P,TC,TA,TB,Α,Β,Md,Kd,Nd}()), 0)
     offset = _atomic_store!(p, C, offset)
     offset = _atomic_store!(p, A, offset)
@@ -89,7 +63,7 @@ function setup_matmul!(p::Ptr{UInt}, C::TC, A::TA, B::TB, α::Α, β::Β, M::Md,
     nothing
 end
 
-function setup_syncmul!(
+@inline function setup_syncmul!(
     p::Ptr{UInt}, C::TC, A::TA, B::TB, α::Α, β::Β, M::Md, K::Kd, N::Nd,
     ap::AP,bcp::BCP,id::ID,tt::TT,::StaticFloat{W₁},::StaticFloat{W₂},::StaticFloat{R₁},::StaticFloat{R₂}
 ) where {TC,TA,TB,Α,Β,Md,Kd,Nd,AP,BCP,ID,TT,W₁,W₂,R₁,R₂}
@@ -109,8 +83,47 @@ function setup_syncmul!(
     nothing
 end
 
-function _matmul!(p::Ptr{UInt})
-    _, fptr = _atomic_load(p, 0, Ptr{Cvoid})
-    ccall(fptr, Cvoid, (Ptr{UInt},), p)
+function launch_thread_mul!(C, A, B, α, β, M, K, N, tid::Int, ::Val{P}) where {P}
+    p = taskpointer(tid)
+    while true
+        if _atomic_cas_cmp!(p, SPIN, STUP)
+            setup_matmul!(p, C, A, B, α, β, M, K, N, Val{P}())
+            @assert _atomic_cas_cmp!(p, STUP, TASK)
+            return
+        elseif _atomic_cas_cmp!(p, WAIT, STUP)
+            setup_matmul!(p, C, A, B, α, β, M, K, N, Val{P}())
+            @assert _atomic_cas_cmp!(p, STUP, LOCK)
+            wake_thread!(tid % UInt)
+            return
+        end
+        pause()
+    end
 end
+function launch_thread_mul!(
+    C, A, B, α, β, M, K, N, ap, bcp, tid, tt,::StaticFloat{W₁},::StaticFloat{W₂},::StaticFloat{R₁},::StaticFloat{R₂}
+) where {W₁,W₂,R₁,R₂}
+    p = taskpointer(tid)
+    while true
+        if _atomic_cas_cmp!(p, SPIN, STUP)
+            setup_syncmul!(
+                p, C, A, B, α, β, M, K, N, ap, bcp, tid, tt,
+                StaticFloat{W₁}(),StaticFloat{W₂}(),StaticFloat{R₁}(),StaticFloat{R₂}()
+            )
+            @assert _atomic_cas_cmp!(p, STUP, TASK)
+            return
+        elseif _atomic_cas_cmp!(p, WAIT, STUP)
+            # we immediately write the `atomicp, bc, tid, total_tids` part, so we can dispatch to the same code as the other methods
+            setup_syncmul!(
+                p, C, A, B, α, β, M, K, N, ap, bcp, tid, tt,
+                StaticFloat{W₁}(),StaticFloat{W₂}(),StaticFloat{R₁}(),StaticFloat{R₂}()
+            )
+            @assert _atomic_cas_cmp!(p, STUP, LOCK)
+            wake_thread!(tid)
+            return
+        end
+        pause()
+    end
+end
+
+
 
