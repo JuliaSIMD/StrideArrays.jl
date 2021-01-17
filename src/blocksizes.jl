@@ -12,10 +12,12 @@ const SECOND_CACHE_SIZE = (VectorizationBase.CACHE_SIZE[SECOND_CACHE] === nothin
 first_effective_cache(::Type{T}) where {T} = StaticInt{FIRST__CACHE_SIZE}() ÷ static_sizeof(T)
 second_effective_cache(::Type{T}) where {T} = StaticInt{SECOND_CACHE_SIZE}() ÷ static_sizeof(T)
 
-const W₁Default = 0.006163438737441861
-const W₂Default = 0.7780817655617109
-const R₁Default = 0.5264474314966798
-const R₂Default = 0.7537004634660829
+
+
+const W₁Default = 0.006131471369820045
+const W₂Default = 0.7646526105725088
+const R₁Default = 0.5577652012322807
+const R₂Default = 0.7586696322536083
 
 function matmul_params(::Type{T}, _α, _β, R₁, R₂) where {T}
     W = VectorizationBase.pick_vector_width_val(T)
