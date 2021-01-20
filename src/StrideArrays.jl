@@ -22,6 +22,8 @@ using ThreadingUtilities:
     SPIN, WAIT, TASK, LOCK, STUP, taskpointer,
     wake_thread!, __wait
 
+using Octavian
+using Octavian: MemoryBuffer
 
 # import ReverseDiffExpressionsBase:
     # RESERVED_INCREMENT_SEED_RESERVED!, ∂getindex,
@@ -60,9 +62,6 @@ const NTHREAD = Ref{Int}()
 _nthreads() = NTHREAD[]
 
 include("type_declarations.jl")
-include("staticfloats.jl")
-include("funcptrs.jl")
-include("l3_cache_buffer.jl")
 include("size_and_strides.jl")
 include("adjoints.jl")
 include("stridedpointers.jl")
@@ -70,25 +69,10 @@ include("indexing.jl")
 include("initialization.jl")
 include("views.jl")
 include("rand.jl")
-include("blocksizes.jl")
-include("kernels.jl")
 include("blas.jl")
 include("broadcast.jl")
 include("miscellaneous.jl")
 
-function __init__()
-    resize!(BCACHE, BSIZE * BCACHE_COUNT)
-    NTHREAD[] = _nt = min(nthreads(), NUM_CORES)
-    if _nt < NUM_CORES && ("SUPPRESS_STRIDE_ARRAYS_WARNING" ∉ keys(ENV))
-        msg = string(
-            "Your system has $NUM_CORES physical cores, but `StrideArrays.jl` only has ",
-            "$(_nt > 1 ? "$(_nt) threads" : "1 thread") available.",
-            "For the best performance, you should start Julia with at least $(NUM_CORES) threads.",
-            "",
-        )
-        @warn msg
-    end
-end
 
 # include("precompile.jl")
 # _precompile_()

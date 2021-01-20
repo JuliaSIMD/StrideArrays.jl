@@ -1,87 +1,13 @@
-mutable struct MemoryBuffer{L,T} <: DenseVector{T}
-    data::NTuple{L,T}
-    @inline function MemoryBuffer{L,T}(::UndefInitializer) where {L,T}
-        @assert isbitstype(T) "Memory buffers must point to bits types, but `isbitstype($T) == false`."
-        new{L,T}()
-    end
-end
-@inline Base.unsafe_convert(::Type{Ptr{T}}, d::MemoryBuffer) where {T} = Base.unsafe_convert(Ptr{T}, Base.pointer_from_objref(d))
-@inline MemoryBuffer{T}(::UndefInitializer, ::StaticInt{L}) where {L,T} = MemoryBuffer{L,T}(undef)
-Base.size(::MemoryBuffer{L}) where L = (L,)
-@inline Base.similar(::MemoryBuffer{L,T}) where {L,T} = MemoryBuffer{L,T}(undef)
-# Base.IndexStyle(::Type{<:MemoryBuffer}) = Base.IndexLinear()
-@inline function Base.getindex(m::MemoryBuffer{L,T}, i::Int) where {L,T}
-    @boundscheck checkbounds(m, i)
-    GC.@preserve m x = vload(pointer(m), VectorizationBase.lazymul(VectorizationBase.static_sizeof(T), i - one(i)))
-    x
-end
-@inline function Base.setindex!(m::MemoryBuffer{L,T}, x, i::Int) where {L,T}
-    @boundscheck checkbounds(m, i)
-    GC.@preserve m vstore!(pointer(m), convert(T, x), lazymul(static_sizeof(T), i - one(i)))
-end
-function core_cache_size(::Type{T}, ::Val{N}) where {T,N}
-    CS = VectorizationBase.CACHE_SIZE[N]
-    if CS === nothing
-        nothing
-    else
-        StaticInt{CS}() ÷ static_sizeof(T)
-        # CC = StaticInt{VectorizationBase.CACHE_COUNT[N]}()
-        # NC = StaticInt{VectorizationBase.NUM_CORES}()
-        # (StaticInt{CS}() * CC) ÷ (static_sizeof(T) * NC)
-    end
-end
-function cache_size(::Type{T}, ::Val{N}) where {T,N}
-    CS = VectorizationBase.CACHE_SIZE[N]
-    if CS === nothing
-        nothing
-    else
-        CC = StaticInt{VectorizationBase.CACHE_COUNT[N]}()
-        (StaticInt{CS}() * CC) ÷ (static_sizeof(T))
-    end
-end
-@inline function cache_buffer(::Type{T}, ::Val{N}) where {T,N}
-    CS = VectorizationBase.CACHE_SIZE[N]
-    if CS === nothing
-        nothing
-    else
-        MemoryBuffer{T}(undef, StaticInt{CS}() ÷ static_sizeof(T))# + (StaticInt{4096}() ÷ static_sizeof(T)))
-    end
-end
-@inline function core_cache_buffer(::Type{T}, ::Val{N}) where {T,N}
-    L = core_cache_size(T, Val{N}())
-    L === nothing && return nothing
-    MemoryBuffer{T}(undef, L)# + (StaticInt{4096}() ÷ static_sizeof(T)))
-#     ptr = Base.unsafe_convert(Ptr{T}, ACACHE) + (Threads.threadid()-1) * L * static_sizeof(T)
-#     ptrarray0(ptr, (L,))
-end
 
 @inline undef_memory_buffer(::Type{T}, ::StaticInt{L}) where {T,L} = MemoryBuffer{L,T}(undef)
 @inline undef_memory_buffer(::Type{T}, L) where {T} = Vector{T}(undef, L)
 
-# @inline L₁buffer(::Type{T}) where {T} = cache_buffer(T, Val{1}())
-# @inline L₂buffer(::Type{T}) where {T} = cache_buffer(T, Val{2}())
-# @inline L₃buffer(::Type{T}) where {T} = cache_buffer(T, Val{3}())
-# @inline L₄buffer(::Type{T}) where {T} = cache_buffer(T, Val{4}())
-
-
-
 abstract type AbstractStrideArray{S,D,T<:VectorizationBase.NativeTypes,N,C,B,R,X,O} <: DenseArray{T,N} end
 abstract type AbstractPtrStrideArray{S,D,T,N,C,B,R,X,O} <: AbstractStrideArray{S,D,T,N,C,B,R,X,O} end
-
-# abstract type AbstractConstantStrideArray{S,T,N,C,B,R,X,O,D} <: AbstractArray{T,N} end
-# const AbstractStrideArray{S,T,N,C,B,R,X,O,D} = Union{AbstractStrideArray{S,T,N,C,B,R,X,O,D}, ConstantStrideArray{S,T,N,C,B,R,X,O,D}}
-
-
-# const ALIGN_ALL_FS_ARRAYS = true
-
 
 struct PtrArray{S,D,T,N,C,B,R,X,O} <: AbstractPtrStrideArray{S,D,T,N,C,B,R,X,O}
     ptr::StridedPointer{T,N,C,B,R,X,O}
     size::S
-    # @inline function PtrArray{S,T,N,X,SN,XN,V}(ptr::Ptr{T}, size::NTuple{SN,Int}, stride::NTuple{XN,Int}) where {S,T,N,X,SN,XN,V}
-    #     check_N(Val{N}(), S, X)
-    #     new(ptr, size, stride)
-    # end
 end
 @inline function PtrArray(ptr::StridedPointer{T,N,C,B,R,X,O}, size::S, ::DenseDims{D}) where {S,D,T,N,C,B,R,X,O}
     PtrArray{S,D,T,N,C,B,R,X,O}(ptr, size)
