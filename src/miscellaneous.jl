@@ -18,6 +18,13 @@ for (op,r) ∈ ((:+,:sum), (:max,:maximum), (:min,:minimum))
     end
 end
 
+function Base.copyto!(B::AbstractStrideArray{<:Any,<:Any,<:Any,N}, A::AbstractStrideArray{<:Any,<:Any,<:Any,N}) where {N}
+    @avx for I ∈ eachindex(A, B)
+        B[I] = A[I]
+    end
+    B
+end
+
 
 function maximum(::typeof(abs), A::AbstractStrideArray{S,T}) where {S,T}
     s = typemin(T)
@@ -46,3 +53,12 @@ function Base.vcat(A::AbstractStrideMatrix, B::AbstractStrideMatrix)
 end
 
 
+@inline function make_stride_dynamic(p::StridedPointer{T,N,C,B,R}) where {T,N,C,B,R}
+    StridedPointer{T,N,C,B,R}(p.p, map(Int, p.strd), p.offsets)
+end
+@inline function make_dynamic(A::PtrArray)
+    PtrArray(make_stride_dynamic(stridedpointer(A)), Base.size(A), ArrayInterface.dense_dims(A))
+end
+@inline function make_dynamic(A::StrideArray)
+    StrideArray(make_dynamic(PtrArray(A)), A.data)
+end

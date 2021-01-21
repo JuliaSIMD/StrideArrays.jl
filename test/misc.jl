@@ -1,5 +1,8 @@
 
 @noinline function dostuff(A; B = I)
+    StrideArrays.@avx for i in eachindex(A)
+        A[i] += 1
+    end
     C = A * B
     s = zero(eltype(C))
     StrideArrays.@avx for i in eachindex(C)
