@@ -4,7 +4,7 @@ using Test
 import InteractiveUtils
 InteractiveUtils.versioninfo(stdout; verbose = true)
 
-@show StrideArrays.VectorizationBase.REGISTER_COUNT
+@show StrideArrays.VectorizationBase.register_count()
 const START_TIME = time()
 
 @time @testset "StrideArrays.jl" begin

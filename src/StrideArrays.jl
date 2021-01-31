@@ -25,13 +25,6 @@ using ThreadingUtilities:
 using Octavian
 using Octavian: MemoryBuffer
 
-# import ReverseDiffExpressionsBase:
-    # RESERVED_INCREMENT_SEED_RESERVED!, ∂getindex,
-    # alloc_adjoint, uninitialized, initialized, isinitialized
-# import LoopVectorization: isdense
-
-# using Parameters: @unpack
-
 export @StrideArray, @gc_preserve, # @Constant,
     AbstractStrideArray, AbstractStrideVector, AbstractStrideMatrix,
     StrideArray, StrideVector, StrideMatrix,
@@ -40,26 +33,6 @@ export @StrideArray, @gc_preserve, # @Constant,
     matmul!, matmul_serial!, mul!, *ˡ, StaticInt,
     matmul, matmul_serial
 # LazyMap, 
-
-
-
-@generated function calc_factors(::Val{nc} = Val{NUM_CORES}()) where {nc}
-    t = Expr(:tuple)
-    for i ∈ nc:-1:1
-        d, r = divrem(nc, i)
-        iszero(r) && push!(t.args, (i, d))
-    end
-    t
-end
-const CORE_FACTORS = calc_factors()
-
-
-const BCACHE = Float64[]
-# """
-# Length is one less than `Base.nthreads()`
-# """
-const NTHREAD = Ref{Int}()
-_nthreads() = NTHREAD[]
 
 include("type_declarations.jl")
 include("size_and_strides.jl")
