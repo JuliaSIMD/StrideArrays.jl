@@ -1,4 +1,4 @@
-using StrideArrays, LinearAlgebra, Aqua
+using StrideArrays, LinearAlgebra, Aqua, ArrayInterface
 using Test
 
 import InteractiveUtils

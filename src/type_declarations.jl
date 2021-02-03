@@ -1,4 +1,6 @@
 
+
+
 @inline undef_memory_buffer(::Type{T}, ::StaticInt{L}) where {T,L} = MemoryBuffer{L,T}(undef)
 @inline undef_memory_buffer(::Type{T}, L) where {T} = Vector{T}(undef, L)
 
@@ -9,7 +11,7 @@ struct PtrArray{S,D,T,N,C,B,R,X,O} <: AbstractPtrStrideArray{S,D,T,N,C,B,R,X,O}
     ptr::StridedPointer{T,N,C,B,R,X,O}
     size::S
 end
-@inline function PtrArray(ptr::StridedPointer{T,N,C,B,R,X,O}, size::S, ::DenseDims{D}) where {S,D,T,N,C,B,R,X,O}
+@inline function PtrArray(ptr::StridedPointer{T,N,C,B,R,X,O}, size::S, ::Val{D}) where {S,D,T,N,C,B,R,X,O}
     PtrArray{S,D,T,N,C,B,R,X,O}(ptr, size)
 end
 

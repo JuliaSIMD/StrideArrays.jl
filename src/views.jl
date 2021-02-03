@@ -1,4 +1,5 @@
 
+
 # @inline function gep_no_offset(ptr::VectorizationBase.AbstractStridedPointer, i::Tuple)
     # VectorizationBase.gep(pointer(ptr), VectorizationBase.tdot(ptr, i, VectorizationBase.strides(ptr), VectorizationBase.nopromote_axis_indicator(ptr)))
 # end
@@ -17,7 +18,7 @@ function view_quote(i, K, S, D, T, N, C, B, R, X, O, zero_offsets::Bool = false)
     Dnew = Expr(:tuple)
     Cnew = -1
     Bnew = -1
-    sortp = ArrayInterface.rank_to_sortperm(R)
+    sortp = rank_to_sortperm(R)
     still_dense = true
     densev = Vector{Bool}(undef, K)
     for k ∈ 1:K
@@ -57,7 +58,6 @@ function view_quote(i, K, S, D, T, N, C, B, R, X, O, zero_offsets::Bool = false)
             ispₙ = i[spₙ]
             still_dense = (ispₙ <: AbstractUnitRange) || (ispₙ === Colon)
             densev[spₙ] = still_dense
-            # @show ispₙ ArrayInterface.known_length(ispₙ) _extract(S.parameters[spₙ]) S.parameters[spₙ]
             if still_dense
                 still_dense = if ((ispₙ === Colon)::Bool || (ispₙ <: Base.Slice)::Bool)
                     true
@@ -93,7 +93,7 @@ function view_quote(i, K, S, D, T, N, C, B, R, X, O, zero_offsets::Bool = false)
         x = sp.strd
         o = sp.offsets
         new_sp = StridedPointer{$T,$Nnew,$Cnew,$Bnew,$Rnew}(gep(sp, $inds), $x, $o)
-        PtrArray(new_sp, $s, DenseDims{$Dnew}())
+        PtrArray(new_sp, $s, Val{$Dnew}())
     end
 end
 
@@ -113,6 +113,6 @@ end
 @inline function Base.vec(A::PtrArray{S,D,T,N,C,0}) where {S,D,T,N,C}
     @assert all(D) "All dimensions must be dense for a vec view. Try `vec(copy(A))` instead."
     sp = StridedPointer(pointer(A), (VectorizationBase.static_sizeof(T),), (One(),))
-    PtrArray(sp, (static_length(A),), DenseDims((true,)))
+    PtrArray(sp, (static_length(A),), Val((true,)))
 end
 

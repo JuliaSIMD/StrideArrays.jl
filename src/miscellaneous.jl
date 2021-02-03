@@ -57,8 +57,10 @@ end
     StridedPointer{T,N,C,B,R}(p.p, map(Int, p.strd), p.offsets)
 end
 @inline function make_dynamic(A::PtrArray)
-    PtrArray(make_stride_dynamic(stridedpointer(A)), Base.size(A), ArrayInterface.dense_dims(A))
+    PtrArray(make_stride_dynamic(stridedpointer(A)), Base.size(A), val_dense_dims(A))
 end
 @inline function make_dynamic(A::StrideArray)
     StrideArray(make_dynamic(PtrArray(A)), A.data)
 end
+
+
