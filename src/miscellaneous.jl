@@ -1,12 +1,30 @@
 
+function gc_preserve_call_expr(c, K)
+    skip = length(c.args) - 2
+    q = Expr(:block, Expr(:meta,:inline))
+    for k ∈ 1:K
+        push!(c.args, :(@inbounds(args[$k])))
+    end
+    push!(q.args, gc_preserve_call(c, 1))
+    push!(q.args, :A)
+    q
+end
 
-@inline Base.map!(f::F, A::AbstractStrideArray, arg1::AbstractArray, args::Vararg{AbstractArray,K}) where {F,K} = vmap!(f, A, arg1, args...)
+# TODO: replace this with `LoopVectorization.gc_preserve_vmap!` after making that version switch to `stridedpointers`+ size info
+@generated function gc_preserve_map!(f::F, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F,K}
+    gc_preserve_call_expr(:(vmap!(f, A)), K)
+end
+
+@inline Base.map!(f::F, A::AbstractStrideArray, arg1::AbstractArray, args::Vararg{AbstractArray,K}) where {F,K} = gc_preserve_map!(f, A, arg1, args...)
 # these two definitions are to avoid ambiguities
-@inline Base.map!(f::F, A::AbstractStrideArray, arg::AbstractArray) where {F} = vmap!(f, A, arg)
-@inline Base.map!(f::F, A::AbstractStrideArray, arg1::AbstractArray, arg2::AbstractArray) where {F} = vmap!(f, A, arg1, arg2)
-@inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} = vmap(f, A, args...)
-@inline Base.reduce(op::O, A::AbstractStrideArray) where {O} = vreduce(op, A)
-@inline Base.mapreduce(f::F, op::O, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F, O, K} = vmapreduce(f, op, A, args...)
+@inline Base.map!(f::F, A::AbstractStrideArray, arg::AbstractArray) where {F} = gc_preserve_map!(f, A, arg)
+@inline Base.map!(f::F, A::AbstractStrideArray, arg1::AbstractArray, arg2::AbstractArray) where {F} = gc_preserve_map!(f, A, arg1, arg2)
+@inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} = gc_preserve_map!(f, A, args...)
+@inline Base.reduce(op::O, A::AbstractStrideArray) where {O} = @gc_preserve vreduce(op, A)
+@inline function gc_preserve_mapreduce(f::F, op::O, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F, O, K}
+    gc_preserve_call_expr(:(vmapreduce(f, op, A)), K)
+end
+@inline Base.mapreduce(f::F, op::O, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F, O, K} = gc_preserve_mapreduce(f, op, A, args...)
 @inline function Base.mapreduce(f::F, op::O, A::AbstractStrideArray) where {F, O}
     @gc_preserve vmapreduce(f, op, A)
 end
@@ -25,8 +43,8 @@ function Base.copyto!(B::AbstractStrideArray{<:Any,<:Any,<:Any,N}, A::AbstractSt
     B
 end
 
-
-function maximum(::typeof(abs), A::AbstractStrideArray{S,T}) where {S,T}
+# why not `vmapreduce`?
+@inline function maximum(::typeof(abs), A::AbstractStrideArray{S,T}) where {S,T}
     s = typemin(T)
     @avx for i ∈ eachindex(A)
         s = max(s, abs(A[i]))
@@ -34,7 +52,7 @@ function maximum(::typeof(abs), A::AbstractStrideArray{S,T}) where {S,T}
     s
 end
 
-function Base.vcat(A::AbstractStrideMatrix, B::AbstractStrideMatrix)
+@inline function Base.vcat(A::AbstractStrideMatrix, B::AbstractStrideMatrix)
     MA, NA = size(A)
     MB, NB = size(B)
     @assert NA == NB
