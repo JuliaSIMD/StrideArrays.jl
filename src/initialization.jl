@@ -27,22 +27,22 @@ function dense_quote(N::Int, b::Bool)
     for n in 1:N
         push!(d.args, b)
     end
-    Expr(:call, Expr(:curly, :DenseDims, d))
+    Expr(:call, Expr(:curly, :Val, d))
 end
 @generated all_dense(::Val{N}) where {N} = dense_quote(N, true)
-@generated none_dense(::Val{N}) where {N} = dense_quote(N, false)
+# @generated none_dense(::Val{N}) where {N} = dense_quote(N, false)
 
-@inline function ptrarray0(ptr::Ptr{T}, s::Tuple{Vararg{Integer,N}}, x::Tuple{Vararg{Integer,N}}, ::DenseDims{D}) where {T,N,D}
-    PtrArray(default_zerobased_stridedpointer(ptr, x), s, DenseDims{D}())
+@inline function ptrarray0(ptr::Ptr{T}, s::Tuple{Vararg{Integer,N}}, x::Tuple{Vararg{Integer,N}}, ::Val{D}) where {T,N,D}
+    PtrArray(default_zerobased_stridedpointer(ptr, x), s, Val{D}())
 end
-@inline function PtrArray(ptr::Ptr{T}, s::Tuple{Vararg{Integer,N}}, x::Tuple{Vararg{Integer,N}}, ::DenseDims{D}) where {T,N,D}
-    PtrArray(default_stridedpointer(ptr, x), s, DenseDims{D}())
+@inline function PtrArray(ptr::Ptr{T}, s::Tuple{Vararg{Integer,N}}, x::Tuple{Vararg{Integer,N}}, ::Val{D}) where {T,N,D}
+    PtrArray(default_stridedpointer(ptr, x), s, Val{D}())
 end
 # @generated function PtrArray(ptr::Ptr{T}, s::Tuple{Vararg{Integer,N}}, x::Tuple{Vararg{Integer,N}}) where {T,N}
 #     q = Expr(:block, Expr(:meta,:inline))
     
 # end
-@inline zeroindex(A::PtrArray{S,D}) where {S,D} = PtrArray(zstridedpointer(A), size(A), DenseDims{D}())
+@inline zeroindex(A::PtrArray{S,D}) where {S,D} = PtrArray(zstridedpointer(A), size(A), Val{D}())
 
 function ptrarray_densestride_quote(::Type{T}, N, stridedpointer_offsets) where {T}
     last_sx = :s_0
@@ -58,7 +58,7 @@ function ptrarray_densestride_quote(::Type{T}, N, stridedpointer_offsets) where 
         push!(q.args, Expr(:(=), new_sx, Expr(:call, :vmul_fast, last_sx, Expr(:ref, :s, n))))
         last_sx = new_sx
     end
-    push!(q.args, :(PtrArray($stridedpointer_offsets(ptr, $t), s, DenseDims{$d}())))
+    push!(q.args, :(PtrArray($stridedpointer_offsets(ptr, $t), s, Val{$d}())))
     q
 end
 
@@ -71,6 +71,7 @@ end
 # @inline function PtrArray(ptr::StridedPointer
 
 static_expr(N::Int) = Expr(:call, Expr(:curly, :StaticInt, N))
+static_expr(b::Bool) = Expr(:call, b ? :True : :False)
 @generated function calc_strides_len(::Type{T}, s::Tuple{Vararg{StaticInt,N}}) where {T, N}
     L = sizeof(T)
     t = Expr(:tuple)
@@ -114,15 +115,28 @@ end
     ptr = pointer(b)
     StrideArray(ptr, s, x, b, all_dense(Val{N}()))
 end
-@inline function StrideArray(ptr::Ptr{T}, s::S, x::X, b, ::DenseDims{D}) where {S,X,T,D}
-    StrideArray(PtrArray(ptr, s, x, DenseDims{D}()), b)
+@inline function StrideArray(ptr::Ptr{T}, s::S, x::X, b, ::Val{D}) where {S,X,T,D}
+    StrideArray(PtrArray(ptr, s, x, Val{D}()), b)
 end
 
 @inline PtrArray(A::StrideArray) = A.ptr
-@inline PtrArray(A::AbstractArray) = PtrArray(stridedpointer(A), size(A), dense_dims(A))
+@inline PtrArray(A::AbstractArray) = PtrArray(stridedpointer(A), size(A), val_dense_dims(A))
 
 
-@generated rank_to_sortperm_val(::Val{R}) where {R} = :(Val{$(ArrayInterface.rank_to_sortperm(R))}())
+"""
+    rank_to_sortperm(::NTuple{N,Int}) -> NTuple{N,Int}
+Returns the `sortperm` of the stride ranks.
+"""
+function rank_to_sortperm(R::NTuple{N,Int}) where {N}
+    sp = ntuple(zero, Val{N}())
+    r = ntuple(n -> sum(R[n] .≥ R), Val{N}())
+    @inbounds for n = 1:N
+        sp = Base.setindex(sp, n, r[n])
+    end
+    sp
+end
+rank_to_sortperm(R) = sortperm
+@generated rank_to_sortperm_val(::Val{R}) where {R} = :(Val{$(rank_to_sortperm(R))}())
 @inline function similar_layout(A::AbstractStrideArray{S,D,T,N,C,B,R}) where {S,D,T,N,C,B,R}
     permutedims(similar(permutedims(A, rank_to_sortperm_val(Val{R}()))), Val{R}())
 end

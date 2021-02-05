@@ -1,4 +1,6 @@
 
+
+
 @inline undef_memory_buffer(::Type{T}, ::StaticInt{L}) where {T,L} = MemoryBuffer{L,T}(undef)
 @inline undef_memory_buffer(::Type{T}, L) where {T} = Vector{T}(undef, L)
 
@@ -9,7 +11,7 @@ struct PtrArray{S,D,T,N,C,B,R,X,O} <: AbstractPtrStrideArray{S,D,T,N,C,B,R,X,O}
     ptr::StridedPointer{T,N,C,B,R,X,O}
     size::S
 end
-@inline function PtrArray(ptr::StridedPointer{T,N,C,B,R,X,O}, size::S, ::DenseDims{D}) where {S,D,T,N,C,B,R,X,O}
+@inline function PtrArray(ptr::StridedPointer{T,N,C,B,R,X,O}, size::S, ::Val{D}) where {S,D,T,N,C,B,R,X,O}
     PtrArray{S,D,T,N,C,B,R,X,O}(ptr, size)
 end
 
@@ -36,19 +38,17 @@ const AbstractStrideMatrix{S,D,T,C,B,R,X,O} = AbstractStrideArray{S,D,T,2,C,B,R,
 @inline maybe_ptr_array(_, A::AbstractArray) = A
 
 
-"""
-  @gc_preserve foo(A, B, C)
 
-Apply to a single, non-nested, function call. It will `GC.@preserve` all the arguments, and substitute suitable arrays with `PtrArray`s.
-This has the benefit of potentially allowing statically sized mutable arrays to be both stack allocated, and passed through a non-inlined function boundary.
-"""
-macro gc_preserve(ex)
-    @assert ex.head === :call
+function gc_preserve_call(ex, skip=0)
     q = Expr(:block)
     call = Expr(:call, esc(ex.args[1]))
     gcp = Expr(:gc_preserve, call)
     for i ∈ 2:length(ex.args)
         arg = ex.args[i]
+        if i+1 ≤ skip
+            push!(call.args, arg)
+            continue
+        end
         A = gensym(:A); buffer = gensym(:buffer);
         if arg isa Expr && arg.head === :kw
             push!(call.args, Expr(:kw, arg.args[1], Expr(:call, :maybe_ptr_array, A)))
@@ -62,6 +62,16 @@ macro gc_preserve(ex)
     end
     push!(q.args, gcp)
     q
+end
+"""
+  @gc_preserve foo(A, B, C)
+
+Apply to a single, non-nested, function call. It will `GC.@preserve` all the arguments, and substitute suitable arrays with `PtrArray`s.
+This has the benefit of potentially allowing statically sized mutable arrays to be both stack allocated, and passed through a non-inlined function boundary.
+"""
+macro gc_preserve(ex)
+    @assert ex.head === :call
+    gc_preserve_call(ex)
 end
 
 

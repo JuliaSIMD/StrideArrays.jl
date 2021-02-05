@@ -232,15 +232,12 @@ end
 #     add_broadcast_adjoint_array!( ls, destname, bcname, loopsyms, A, I2, sizeof(T) )
 # end
 
-rank_sortperm(R::NTuple) = ArrayInterface.rank_to_sortperm(R)
-rank_sortperm(R) = sortperm(R)
-
 function sort_indices!(ar, R, C)
     any(i -> R[i-1] ≥ R[i], 2:length(R)) || return nothing
     li = ar.loopedindex; NN = length(li)
     # all(n -> ((Xv[n+1]) % UInt) ≥ ((Xv[n]) % UInt), 1:NN-1) && return nothing    
     inds = LoopVectorization.getindices(ar); offsets = ar.ref.offsets;
-    sp = rank_sortperm(R)
+    sp = rank_to_sortperm(R)
     # sp = sortperm(reinterpret(UInt,Xv), alg = Base.Sort.DEFAULT_STABLE)
     lib = copy(li); indsb = copy(inds); offsetsb = copy(offsets);
     for i ∈ eachindex(li, inds)
@@ -274,13 +271,14 @@ function _tuple_type_len(::Type{S}) where {N,S<:Tuple{Vararg{StaticInt,N}}}
     L
 end
 # function Base.Broadcast.materialize!(
-@generated function Base.Broadcast.materialize!(
-    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC
-) where {S, D, T, N, C, B, R, FS <: LinearStyle{S,N,R}, BC <: Base.Broadcast.Broadcasted{FS}}
+@generated function _materialize!(
+    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::StaticInt{RS}, ::StaticInt{RC}, ::StaticInt{CLS}
+) where {S, D, T, N, C, B, R, FS <: LinearStyle{S,N,R}, BC <: Base.Broadcast.Broadcasted{FS}, RS, RC, CLS}
     # we have an N dimensional loop.
     # need to construct the LoopSet
     loopsyms = [gensym(:n)]
     ls = LoopVectorization.LoopSet(:StrideArrays)
+    LoopVectorization.set_hw!(ls, RS, RC, CLS)
     itersym = first(loopsyms)
     L = _tuple_type_len(S)
     if L === nothing
@@ -304,15 +302,16 @@ end
     )
     # ls
 end
-@generated function Base.Broadcast.materialize!(
+@generated function _materialize!(
 # function Base.Broadcast.materialize!(
-    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC
-) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}}
+    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::StaticInt{RS}, ::StaticInt{RC}, ::StaticInt{CLS}
+) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}, RS, RC, CLS}
     # 1+1
     # we have an N dimensional loop.
     # need to construct the LoopSet
     loopsyms = [gensym(:n) for n ∈ 1:N]
     ls = LoopVectorization.LoopSet(:StrideArrays)
+    LoopVectorization.set_hw!(ls, RS, RC, CLS)
     destref = LoopVectorization.ArrayReference(:_dest, copy(loopsyms))
     destmref = LoopVectorization.ArrayReferenceMeta(destref, fill(true, length(LoopVectorization.getindices(destref))))
     sp = sort_indices!(destmref, R, C)
@@ -363,6 +362,12 @@ end
         LoopVectorization.lower(ls, 0),
         :dest
     )
+end
+
+@inline function Base.Broadcast.materialize!(
+    dest::AbstractStrideArray, bc::BC
+) where {BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}}
+    _materialize!(dest, bc, VectorizationBase.register_size(), VectorizationBase.register_count(), VectorizationBase.cache_linesize())
 end
 
 # @generated function Base.Broadcast.materialize!(

@@ -34,7 +34,7 @@ end
         x = ptr.strd
         o = ptr.offsets
         sp = StridedPointer{$T,$N,$Cnew,$Bnew,$Rnew}(ptr.p, $x, $o)
-        PtrArray(sp, $s, DenseDims{$Dnew}())
+        PtrArray(sp, $s, Val{$Dnew}())
     end
 end
 @inline function Base.permutedims(A::StrideArray, ::Val{P}) where {P}
@@ -61,7 +61,7 @@ end
         x = ptr.strd
         o = ptr.offsets
         sp = StridedPointer{$T,2,$Cnew,$B,$Rnew}(ptr.p, $x, $o)
-        PtrArray(sp, $s, DenseDims{$Dnew}())
+        PtrArray(sp, $s, Val{$Dnew}())
     end
 end
 @inline Base.adjoint(a::StrideVector) = StrideArray(adjoint(a.ptr), a.data)

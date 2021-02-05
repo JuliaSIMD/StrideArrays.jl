@@ -29,8 +29,7 @@ jobs:
           - '1'
           - 'nightly'
         os:
-          - ubuntu-latest
-          - windows-latest
+          - macOS-latest
         threads:
           - '5'
         arch:

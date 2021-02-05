@@ -50,8 +50,8 @@ end
     vec(A)[3] = 5
     @test A[3,1] == A[3] == vec(A)[3] == 5
 
-    @test StrideArrays.stride_rank(StrideArrays.similar_layout(A')) === StrideArrays.stride_rank(StrideArrays.similar_layout(Aa')) === StrideArrays.StrideRank{(2,1)}()
-    @test StrideArrays.ArrayInterface.contiguous_axis(StrideArrays.similar_layout(A')) === StrideArrays.ArrayInterface.contiguous_axis(StrideArrays.similar_layout(Aa')) === StrideArrays.ArrayInterface.Contiguous{2}()
+    @test ArrayInterface.stride_rank(StrideArrays.similar_layout(A')) === ArrayInterface.stride_rank(StrideArrays.similar_layout(Aa')) === (StaticInt(2),StaticInt(1))
+    @test ArrayInterface.contiguous_axis(StrideArrays.similar_layout(A')) === ArrayInterface.contiguous_axis(StrideArrays.similar_layout(Aa')) === StrideArrays.StaticInt{2}()
     
     
 end
