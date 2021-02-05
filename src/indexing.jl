@@ -1,9 +1,4 @@
 
-
-
-
-@noinline ThrowBoundsError(A, i) = (println("A of length $(length(A))."); throw(BoundsError(A, i)))
-                                
 Base.IndexStyle(::Type{<:AbstractStrideArray}) = IndexCartesian()
 Base.IndexStyle(::Type{<:AbstractStrideVector{<:Any,<:Any,<:Any,1}}) = IndexLinear()
 @generated function Base.IndexStyle(::Type{<:AbstractStrideArray{S,D,T,N,C,B,R}}) where {S,D,T,N,C,B,R}
