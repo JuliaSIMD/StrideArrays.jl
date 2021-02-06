@@ -21,7 +21,7 @@ Octavian = "0.2.3"
 SLEEFPirates = "0.6.9"
 ThreadingUtilities = "0.2"
 VectorizationBase = "0.18.7"
-VectorizedRNG = "0.2.7"
+VectorizedRNG = "0.2.7, 0.2"
 julia = "1.5"
 
 [extras]
