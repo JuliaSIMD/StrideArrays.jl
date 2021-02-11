@@ -1,7 +1,6 @@
 
 @inline ArrayInterface.size(A::PtrArray) = A.size
 @inline ArrayInterface.size(A::StrideArray) = A.ptr.size
-@inline VectorizationBase.bytestrides(A::StridedPointer) = A.strd
 @inline VectorizationBase.bytestrides(A::PtrArray) = A.ptr.strd
 @inline VectorizationBase.bytestrides(A::StrideArray) = A.ptr.ptr.strd
 

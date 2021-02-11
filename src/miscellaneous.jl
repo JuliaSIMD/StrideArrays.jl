@@ -44,7 +44,7 @@ function Base.copyto!(B::AbstractStrideArray{<:Any,<:Any,<:Any,N}, A::AbstractSt
 end
 
 # why not `vmapreduce`?
-@inline function maximum(::typeof(abs), A::AbstractStrideArray{S,T}) where {S,T}
+@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{S,D,T}) where {S,D,T}
     s = typemin(T)
     @avx for i ∈ eachindex(A)
         s = max(s, abs(A[i]))
