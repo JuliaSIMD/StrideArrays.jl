@@ -1,6 +1,7 @@
 @inline ArrayInterface.size(A::StrideArray) = getfield(getfield(A, :ptr), :size)
-@inline VectorizationBase.bytestrides(A::StrideArray) = A.ptr.ptr.strd
-@inline ArrayInterface.strides(A::StrideArray) = strides(A.ptr)
+
+@inline VectorizationBase.bytestrides(A::StrideArray) = getfield(getfield(getfield(A, :ptr), :ptr), :strd)
+@inline ArrayInterface.strides(A::StrideArray) = strides(getfield(A, :ptr))
 @inline ArrayInterface.offsets(A::StrideArray) = getfield(getfield(getfield(A, :ptr), :ptr), :offsets)
 
 @inline zeroindex(r::ArrayInterface.OptionallyStaticUnitRange{One}) = CloseOpen(Zero(), last(r))
