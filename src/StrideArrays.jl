@@ -10,12 +10,14 @@ using VectorizationBase, ArrayInterface,
 
 using VectorizationBase: align, gep, AbstractStridedPointer, AbstractSIMDVector, vnoaliasstore!, staticm1,
     static_sizeof, lazymul, vmul_fast, StridedPointer, gesp, zero_offsets, pause, zstridedpointer,
-    val_dense_dims, val_stride_rank
-using LoopVectorization: maybestaticsize, preserve_buffer, CloseOpen
+    val_dense_dims, val_stride_rank, preserve_buffer
+using LoopVectorization: maybestaticsize, CloseOpen
 using ArrayInterface: StaticInt, Zero, One, StaticBool, True, False,
     OptionallyStaticUnitRange, size, strides, offsets, indices,
     static_length, static_first, static_last, axes,
     dense_dims, stride_rank
+using StrideArraysCore: AbstractStrideArray, AbstractStrideMatrix, AbstractStrideVector,
+    AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm
 
 using ThreadingUtilities:
     _atomic_add!, _atomic_max!, _atomic_min!,
@@ -37,11 +39,8 @@ export @StrideArray, @gc_preserve, # @Constant,
 
 include("type_declarations.jl")
 include("size_and_strides.jl")
-include("adjoints.jl")
-include("stridedpointers.jl")
-include("indexing.jl")
+# include("stridedpointers.jl")
 include("initialization.jl")
-include("views.jl")
 include("rand.jl")
 include("blas.jl")
 include("broadcast.jl")
