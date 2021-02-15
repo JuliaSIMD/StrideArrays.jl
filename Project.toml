@@ -20,7 +20,7 @@ LoopVectorization = "0.11.2"
 Octavian = "0.2.3"
 SLEEFPirates = "0.6.9"
 ThreadingUtilities = "0.2"
-VectorizationBase = "0.18.7, 0.18, 0.19"
+VectorizationBase = "0.18.7, 0.19"
 VectorizedRNG = "0.2.7"
 julia = "1.5"
 
