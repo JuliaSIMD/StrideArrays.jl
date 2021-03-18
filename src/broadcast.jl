@@ -272,22 +272,25 @@ function _tuple_type_len(::Type{S}) where {N,S<:Tuple{Vararg{StaticInt,N}}}
 end
 # function Base.Broadcast.materialize!(
 @generated function _materialize!(
-    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::StaticInt{RS}, ::StaticInt{RC}, ::StaticInt{CLS}
-) where {S, D, T, N, C, B, R, FS <: LinearStyle{S,N,R}, BC <: Base.Broadcast.Broadcasted{FS}, RS, RC, CLS}
+    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::Val{UNROLL}
+) where {S, D, T, N, C, B, R, FS <: LinearStyle{S,N,R}, BC <: Base.Broadcast.Broadcasted{FS}, UNROLL}
     # we have an N dimensional loop.
     # need to construct the LoopSet
     loopsyms = [gensym(:n)]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    LoopVectorization.set_hw!(ls, RS, RC, CLS)
+    let (inline, u₁, u₂, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+        LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
+        ls.vector_width[] = W
+    end
     itersym = first(loopsyms)
     L = _tuple_type_len(S)
     if L === nothing
         Lsym = gensym(:L); Rsym = gensym(:R)
         LoopVectorization.pushpreamble!(ls, Expr(:(=), Lsym, Expr(:call, :static_length, :dest)))
         LoopVectorization.pushpreamble!(ls, Expr(:(=), Rsym, Expr(:call, :(:), :(One()), Lsym)))
-        LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Lsym, Rsym, Lsym))
+        LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Lsym, 1, Rsym, Lsym), itersym)
     else
-        LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, L, Symbol(""), Symbol("")))
+        LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, L, 1, Symbol(""), Symbol("")), itersym)
     end
     elementbytes = sizeof(T)
     LoopVectorization.add_broadcast!(ls, :dest, :bc, loopsyms, BC, elementbytes)
@@ -304,14 +307,17 @@ end
 end
 @generated function _materialize!(
 # function Base.Broadcast.materialize!(
-    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::StaticInt{RS}, ::StaticInt{RC}, ::StaticInt{CLS}
-) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}, RS, RC, CLS}
+    dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::Val{UNROLL}
+) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}, UNROLL}
     # 1+1
     # we have an N dimensional loop.
     # need to construct the LoopSet
     loopsyms = [gensym(:n) for n ∈ 1:N]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    LoopVectorization.set_hw!(ls, RS, RC, CLS)
+    let (inline, u₁, u₂, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+        LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
+        ls.vector_width[] = W
+    end
     destref = LoopVectorization.ArrayReference(:_dest, copy(loopsyms))
     destmref = LoopVectorization.ArrayReferenceMeta(destref, fill(true, length(LoopVectorization.getindices(destref))))
     sp = sort_indices!(destmref, R, C)
@@ -323,9 +329,9 @@ end
             Sₙsym = gensym(:Sₙ); Rₙsym = gensym(:Rₙ)
             LoopVectorization.pushpreamble!(ls, Expr(:(=), Sₙsym, Expr(:call, :size, :dest, n)))
             LoopVectorization.pushpreamble!(ls, Expr(:(=), Rₙsym, Expr(:call, :(:), :(One()), Sₙsym)))
-            LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙsym, Rₙsym, Sₙsym))
+            LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙsym, 1, Rₙsym, Sₙsym), itersym)
         else#TODO: handle offsets
-            LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙ::Int, Symbol(""), Symbol("")))
+            LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙ::Int, 1, Symbol(""), Symbol("")), itersym)
         end
     end
     elementbytes = sizeof(T)
@@ -367,7 +373,8 @@ end
 @inline function Base.Broadcast.materialize!(
     dest::AbstractStrideArray, bc::BC
 ) where {BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}}
-    _materialize!(dest, bc, VectorizationBase.register_size(), VectorizationBase.register_count(), VectorizationBase.cache_linesize())
+    # _materialize!(dest, bc, VectorizationBase.register_size(), VectorizationBase.register_count(), VectorizationBase.cache_linesize())
+    _materialize!(dest, bc, LoopVectorization.avx_config_val(Val(false), Val(zero(Int8)), Val(zero(Int8)), Val(-1%UInt), pick_vector_width(eltype(dest))))
 end
 
 # @generated function Base.Broadcast.materialize!(

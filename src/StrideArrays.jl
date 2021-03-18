@@ -17,12 +17,6 @@ using ArrayInterface: StaticInt, Zero, One, StaticBool, True, False,
     static_length, static_first, static_last, axes,
     dense_dims, stride_rank
 
-using ThreadingUtilities:
-    _atomic_add!, _atomic_max!, _atomic_min!,
-    _atomic_load, _atomic_store!, _atomic_cas_cmp!,
-    SPIN, WAIT, TASK, LOCK, STUP, taskpointer,
-    wake_thread!, __wait
-
 using Octavian
 using Octavian: MemoryBuffer
 
