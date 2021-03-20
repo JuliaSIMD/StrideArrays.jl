@@ -1,4 +1,4 @@
-using StrideArrays
+using StrideArrays, Test
 
 @testset "Broadcast" begin
     M, K, N = 47, 85, 74
