@@ -1,3 +1,6 @@
+
+using LoopVectorization: forbroadcast
+
 _extract(::Type{StaticInt{N}}) where {N} = N::Int
 _extract(_) = nothing
 
@@ -141,7 +144,7 @@ end
 
 
 function add_single_element_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::Symbol, elementbytes)
-    LoopVectorization.pushpreamble!(ls, Expr(:(=), Symbol("##", destname), Expr(:call, :first, bcname)))
+    LoopVectorization.pushprepreamble!(ls, Expr(:(=), Symbol("##", destname), Expr(:call, :first, bcname)))
     LoopVectorization.add_constant!(ls, destname, elementbytes)
 end
 function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::Symbol, loopsyms::Vector{Symbol}, indexes, S, R, C, elementbytes)
@@ -160,14 +163,11 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
             offset += 1
             bco = bcname
             bcname = Symbol(:_, bcname)
-            v = Expr(:call, :view, bco)
+            v = Expr(:call, :view, Expr(:call, :parent, bco))
             foreach(_ -> push!(v.args, :(:)), 1:i - offset)
             push!(v.args, :(One()))
             foreach(_ -> push!(v.args, :(:)), i+1:length(indexes))
-            LoopVectorization.pushpreamble!(ls, Expr(:(=), bcname, v))
-            # vptrbc = LoopVectorization.subset_vptr!(
-            #     ls, vptrbc, i - offset, 1, loopsyms, fill(true, length(indexes))
-            # )
+            LoopVectorization.pushprepreamble!(ls, Expr(:(=), bcname, v))
         else
             push!(Rnew, R[i])
             push!(ref, loopsyms[n])
@@ -182,18 +182,19 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
     )
     sp = sort_indices!(mref, Rnew, C)
     if sp === nothing
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), bctemp,  bcname))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  bcname))
         # LoopVectorization.add_vptr!(ls, bcname, vptrbc, true, false)
     else
         ssp = Expr(:tuple); append!(ssp.args, sp)
         ssp = Expr(:call, Expr(:curly, :StaticInt, ssp))
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), bctemp,  Expr(:call, :permutedims, bcname, ssp)))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  Expr(:call, :permutedims, bcname, ssp)))
         # LoopVectorization.add_vptr!(ls, bctemp, vptrbc, true, false)
         # vptemp = gensym(vptrbc)
         # LoopVectorization.add_vptr!(ls, bcname, vptemp, true, false)
-        # LoopVectorization.pushpreamble!(Expr(:(=), vptrbc,  Expr(:call, :PermutedDimsArray, vptemp, ssp)))
+        # LoopVectorization.pushprepreamble!(Expr(:(=), vptrbc,  Expr(:call, :PermutedDimsArray, vptemp, ssp)))
     end
-    LoopVectorization.add_simple_load!(ls, destname, mref, mref.ref.indices, elementbytes)
+    loadop = LoopVectorization.add_simple_load!(ls, destname, mref, mref.ref.indices, elementbytes)
+    LoopVectorization.doaddref!(ls, loadop)
 end
 
 # function add_broadcast_adjoint_array!(
@@ -278,35 +279,37 @@ end
     # need to construct the LoopSet
     loopsyms = [gensym(:n)]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    let (inline, u₁, u₂, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
-        LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-        ls.vector_width[] = W
-    end
+    (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+    LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
+    ls.vector_width[] = W
+    ls.isbroadcast[] = isbroadcast;
     itersym = first(loopsyms)
     L = _tuple_type_len(S)
     if L === nothing
         Lsym = gensym(:L); Rsym = gensym(:R)
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), Lsym, Expr(:call, :static_length, :dest)))
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), Rsym, Expr(:call, :(:), :(One()), Lsym)))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), Lsym, Expr(:call, :static_length, :dest)))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), Rsym, Expr(:call, :(:), :(One()), Lsym)))
         LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Lsym, 1, Rsym, Lsym), itersym)
     else
         LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, L, 1, Symbol(""), Symbol("")), itersym)
     end
     elementbytes = sizeof(T)
     LoopVectorization.add_broadcast!(ls, :dest, :bc, loopsyms, BC, elementbytes)
-    LoopVectorization.add_simple_store!(ls, :dest, LoopVectorization.ArrayReference(:dest, loopsyms), elementbytes)
+    storeop = LoopVectorization.add_simple_store!(ls, :dest, LoopVectorization.ArrayReference(:dest, loopsyms), elementbytes)
+    LoopVectorization.doaddref!(ls, storeop)
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
-    Expr(
-        :block,
-        Expr(:meta,:inline),
-        ls.prepreamble,
-        LoopVectorization.lower(ls),
-        :dest
-    )
+    Expr(:block, LoopVectorization.setup_call(ls, :(throw("check args failed?!?")), LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
+    # Expr(
+    #     :block,
+    #     Expr(:meta,:inline),
+    #     ls.prepreamble,
+    #     LoopVectorization.lower(ls),
+    #     :dest
+    # )
     # ls
 end
 @generated function _materialize!(
-# function Base.Broadcast.materialize!(
+# function _materialize!(
     dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::Val{UNROLL}
 ) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}, UNROLL}
     # 1+1
@@ -314,10 +317,10 @@ end
     # need to construct the LoopSet
     loopsyms = [gensym(:n) for n ∈ 1:N]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    let (inline, u₁, u₂, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
-        LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-        ls.vector_width[] = W
-    end
+    (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+    LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
+    ls.vector_width[] = W
+    ls.isbroadcast[] = isbroadcast;
     destref = LoopVectorization.ArrayReference(:_dest, copy(loopsyms))
     destmref = LoopVectorization.ArrayReferenceMeta(destref, fill(true, length(LoopVectorization.getindices(destref))))
     sp = sort_indices!(destmref, R, C)
@@ -327,8 +330,8 @@ end
         Sₙ =_extract(S.parameters[n])# (_s === nothing ? -1 : _s)::Int
         if Sₙ === nothing
             Sₙsym = gensym(:Sₙ); Rₙsym = gensym(:Rₙ)
-            LoopVectorization.pushpreamble!(ls, Expr(:(=), Sₙsym, Expr(:call, :size, :dest, n)))
-            LoopVectorization.pushpreamble!(ls, Expr(:(=), Rₙsym, Expr(:call, :(:), :(One()), Sₙsym)))
+            LoopVectorization.pushprepreamble!(ls, Expr(:(=), Sₙsym, Expr(:call, :size, :dest, n)))
+            LoopVectorization.pushprepreamble!(ls, Expr(:(=), Rₙsym, Expr(:call, :(:), :(One()), Sₙsym)))
             LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙsym, 1, Rₙsym, Sₙsym), itersym)
         else#TODO: handle offsets
             LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, Sₙ::Int, 1, Symbol(""), Symbol("")), itersym)
@@ -338,18 +341,19 @@ end
     # destadj = length(X.parameters) > 1 && last(X.parameters)::Int == 1
     # if destadj
     #     destsym = :dest′
-    #     LoopVectorization.pushpreamble!(ls, Expr(:(=), destsym, Expr(:call, Expr(:(.), :LinearAlgebra, QuoteNode(:Transpose)), :dest)))
+    #     LoopVectorization.pushprepreamble!(ls, Expr(:(=), destsym, Expr(:call, Expr(:(.), :LinearAlgebra, QuoteNode(:Transpose)), :dest)))
     # else
     # end
     LoopVectorization.add_broadcast!(ls, :destination, :bc, loopsyms, BC, elementbytes)
     if isnothing(sp)
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), :_dest, :dest))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), :_dest, :dest))
     else
         ssp = Expr(:tuple); append!(ssp.args, sp)
         ssp = Expr(:call, Expr(:curly, :StaticInt, ssp))
-        LoopVectorization.pushpreamble!(ls, Expr(:(=), :_dest,  Expr(:call, :permutedims, :dest, ssp)))
+        LoopVectorization.pushprepreamble!(ls, Expr(:(=), :_dest,  Expr(:call, :permutedims, :dest, ssp)))
     end
     storeop = LoopVectorization.add_simple_store!(ls, :destination, destmref, sizeof(T))
+    LoopVectorization.doaddref!(ls, storeop)
     # destref = if destadj
     #     ref = LoopVectorization.ArrayReference(:dest′, reverse(loopsyms))
     # else
@@ -358,23 +362,23 @@ end
     #     end
     #     ref
     # end
-    ls.isbroadcast[] = true;
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
+    # return ls
+    Expr(:block, LoopVectorization.setup_call(ls, :(throw("check args failed?!?")), LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
     # ls.vector_width[] = VectorizationBase.pick_vector_width(T)
     # return ls
-    Expr(
-        :block,
-        ls.prepreamble,
-        LoopVectorization.lower(ls, 0),
-        :dest
-    )
+    # Expr(
+    #     :block,
+    #     ls.prepreamble,
+    #     LoopVectorization.lower(ls, 0),
+    #     :dest
+    # )
 end
 
 @inline function Base.Broadcast.materialize!(
     dest::AbstractStrideArray, bc::BC
 ) where {BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}}
-    # _materialize!(dest, bc, VectorizationBase.register_size(), VectorizationBase.register_count(), VectorizationBase.cache_linesize())
-    _materialize!(dest, bc, LoopVectorization.avx_config_val(Val(false), Val(zero(Int8)), Val(zero(Int8)), Val(-1%UInt), pick_vector_width(eltype(dest))))
+    _materialize!(dest, bc, LoopVectorization.avx_config_val(Val((true,zero(Int8),zero(Int8),true,-1%UInt)), pick_vector_width(eltype(dest))))
 end
 
 # @generated function Base.Broadcast.materialize!(
@@ -384,7 +388,7 @@ end
 #     # need to construct the LoopSet
 #     loopsyms = [gensym(:n) for n ∈ 1:N]
 #     ls = LoopVectorization.LoopSet(:StrideArrays)
-#     LoopVectorization.pushpreamble!(ls, Expr(:(=), :dest, Expr(:call, :parent, :dest′)))
+#     LoopVectorization.pushprepreamble!(ls, Expr(:(=), :dest, Expr(:call, :parent, :dest′)))
 #     for (n,itersym) ∈ enumerate(loopsyms)
 #         LoopVectorization.add_loop!(ls, LoopVectorization.Loop(itersym, 1, (S.parameters[n])::Int))
 #     end
