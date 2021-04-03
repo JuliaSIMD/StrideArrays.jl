@@ -12,12 +12,14 @@ using VectorizationBase: align, gep, AbstractStridedPointer, AbstractSIMDVector,
     static_sizeof, lazymul, vmul_fast, StridedPointer, gesp, zero_offsets, pause, zstridedpointer,
     val_dense_dims, val_stride_rank, preserve_buffer
 using LoopVectorization: maybestaticsize, CloseOpen
-using ArrayInterface: StaticInt, Zero, One, StaticBool, True, False,
-    OptionallyStaticUnitRange, size, strides, offsets, indices,
+using Static: StaticInt, Zero, One, StaticBool, True, False
+using ArrayInterface: OptionallyStaticUnitRange, size, strides, offsets, indices,
     static_length, static_first, static_last, axes,
     dense_dims, stride_rank
 using StrideArraysCore: AbstractStrideArray, AbstractStrideMatrix, AbstractStrideVector,
-    AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm
+    AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm,
+    StrideArray, StrideVector, StrideMatrix, similar_layout,
+    @gc_preserve
 
 using Octavian
 using Octavian: MemoryBuffer
@@ -31,10 +33,6 @@ export @StrideArray, @gc_preserve, # @Constant,
     matmul, matmul_serial
 # LazyMap, 
 
-include("type_declarations.jl")
-include("size_and_strides.jl")
-# include("stridedpointers.jl")
-include("initialization.jl")
 include("rand.jl")
 include("blas.jl")
 include("broadcast.jl")

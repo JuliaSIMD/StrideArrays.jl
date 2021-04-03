@@ -20,7 +20,9 @@ end
 @inline Base.map!(f::F, A::AbstractStrideArray, arg::AbstractArray) where {F} = gc_preserve_map!(f, A, arg)
 @inline Base.map!(f::F, A::AbstractStrideArray, arg1::AbstractArray, arg2::AbstractArray) where {F} = gc_preserve_map!(f, A, arg1, arg2)
 @inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} = gc_preserve_map!(f, A, args...)
-@inline Base.reduce(op::O, A::AbstractStrideArray) where {O} = @gc_preserve vreduce(op, A)
+@inline Base.reduce(op::O, A::AbstractStrideArray{<:Number}) where {O} = @gc_preserve vreduce(op, A)
+@inline Base.reduce(::typeof(vcat), A::AbstractStrideArray{<:Number}) = A
+@inline Base.reduce(::typeof(hcat), A::AbstractStrideArray{<:Number}) = A
 @inline function gc_preserve_mapreduce(f::F, op::O, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F, O, K}
     gc_preserve_call_expr(:(vmapreduce(f, op, A)), K)
 end
@@ -31,7 +33,7 @@ end
 
 for (op,r) ∈ ((:+,:sum), (:max,:maximum), (:min,:minimum))
     @eval begin
-        @inline Base.reduce(::typeof($op), A::AbstractStrideArray; dims = nothing) = @gc_preserve vreduce($op, A, dims = dims)
+        @inline Base.reduce(::typeof($op), A::AbstractStrideArray{<:Number}; dims = nothing) = @gc_preserve vreduce($op, A, dims = dims)
         @inline Base.$r(A::AbstractStrideArray; dims = nothing) = @gc_preserve vreduce($op, A, dims = dims)
     end
 end

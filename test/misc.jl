@@ -11,8 +11,8 @@
     s
 end
 function gc_preserve_test()
-    A = @StrideArray rand(8,8);
-    B = @StrideArray rand(8,8);
+    A = @StrideArray rand(8, $(2<<2));
+    B = @StrideArray rand($(1<<3), 8);
     @gc_preserve dostuff(A, B = B)
 end
 
@@ -23,7 +23,8 @@ end
     @test maximum(abs, y) == maximum(abs, Array(y))
     @test iszero(@allocated gc_preserve_test())
 
-    A = @StrideArray rand(10,8);
+    A = @StrideArray rand($(5<<1),$(1<<3));
+    @test StrideArrays.size(A) === (StaticInt(10), StaticInt(8))
     A_u = view(A, StaticInt(1):StaticInt(6), :)
     A_l = view(A, StaticInt(7):StaticInt(10), :)
     @test A == @inferred(vcat(A_u, A_l))
