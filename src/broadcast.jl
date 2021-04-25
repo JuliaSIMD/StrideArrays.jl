@@ -281,8 +281,8 @@ end
     ls = LoopVectorization.LoopSet(:StrideArrays)
     (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-    ls.vector_width[] = W
-    ls.isbroadcast[] = isbroadcast;
+    ls.vector_width = W
+    ls.isbroadcast = isbroadcast;
     itersym = first(loopsyms)
     L = _tuple_type_len(S)
     if L === nothing
@@ -319,8 +319,8 @@ end
     ls = LoopVectorization.LoopSet(:StrideArrays)
     (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-    ls.vector_width[] = W
-    ls.isbroadcast[] = isbroadcast;
+    ls.vector_width = W
+    ls.isbroadcast = isbroadcast;
     destref = LoopVectorization.ArrayReference(:_dest, copy(loopsyms))
     destmref = LoopVectorization.ArrayReferenceMeta(destref, fill(true, length(LoopVectorization.getindices(destref))))
     sp = sort_indices!(destmref, R, C)
@@ -365,7 +365,7 @@ end
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
     # return ls
     Expr(:block, LoopVectorization.setup_call(ls, :(throw("check args failed?!?")), LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
-    # ls.vector_width[] = VectorizationBase.pick_vector_width(T)
+    # ls.vector_width = VectorizationBase.pick_vector_width(T)
     # return ls
     # Expr(
     #     :block,
