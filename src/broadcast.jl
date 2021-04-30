@@ -151,7 +151,7 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
     ref = Symbol[]
     # aref = LoopVectorization.ArrayReference(bcname, ref)
     vptrbc = LoopVectorization.vptr(bcname)
-    LoopVectorization.add_vptr!(ls, bcname, vptrbc, true, false) #TODO: is this necessary?
+    LoopVectorization.add_vptr!(ls, bcname, vptrbc, true) #TODO: is this necessary?
     offset = 0
     Rnew = Int[]
     for (i,n) ∈ enumerate(indexes)
@@ -183,15 +183,10 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
     sp = sort_indices!(mref, Rnew, C)
     if sp === nothing
         LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  bcname))
-        # LoopVectorization.add_vptr!(ls, bcname, vptrbc, true, false)
     else
         ssp = Expr(:tuple); append!(ssp.args, sp)
         ssp = Expr(:call, Expr(:curly, :StaticInt, ssp))
         LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  Expr(:call, :permutedims, bcname, ssp)))
-        # LoopVectorization.add_vptr!(ls, bctemp, vptrbc, true, false)
-        # vptemp = gensym(vptrbc)
-        # LoopVectorization.add_vptr!(ls, bcname, vptemp, true, false)
-        # LoopVectorization.pushprepreamble!(Expr(:(=), vptrbc,  Expr(:call, :PermutedDimsArray, vptemp, ssp)))
     end
     loadop = LoopVectorization.add_simple_load!(ls, destname, mref, mref.ref.indices, elementbytes)
     LoopVectorization.doaddref!(ls, loadop)
