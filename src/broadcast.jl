@@ -151,7 +151,7 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
     ref = Symbol[]
     # aref = LoopVectorization.ArrayReference(bcname, ref)
     vptrbc = LoopVectorization.vptr(bcname)
-    LoopVectorization.add_vptr!(ls, bcname, vptrbc, true, false) #TODO: is this necessary?
+    LoopVectorization.add_vptr!(ls, bcname, vptrbc, true) #TODO: is this necessary?
     offset = 0
     Rnew = Int[]
     for (i,n) ∈ enumerate(indexes)
@@ -183,15 +183,10 @@ function add_fs_array!(ls::LoopVectorization.LoopSet, destname::Symbol, bcname::
     sp = sort_indices!(mref, Rnew, C)
     if sp === nothing
         LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  bcname))
-        # LoopVectorization.add_vptr!(ls, bcname, vptrbc, true, false)
     else
         ssp = Expr(:tuple); append!(ssp.args, sp)
         ssp = Expr(:call, Expr(:curly, :StaticInt, ssp))
         LoopVectorization.pushprepreamble!(ls, Expr(:(=), bctemp,  Expr(:call, :permutedims, bcname, ssp)))
-        # LoopVectorization.add_vptr!(ls, bctemp, vptrbc, true, false)
-        # vptemp = gensym(vptrbc)
-        # LoopVectorization.add_vptr!(ls, bcname, vptemp, true, false)
-        # LoopVectorization.pushprepreamble!(Expr(:(=), vptrbc,  Expr(:call, :PermutedDimsArray, vptemp, ssp)))
     end
     loadop = LoopVectorization.add_simple_load!(ls, destname, mref, mref.ref.indices, elementbytes)
     LoopVectorization.doaddref!(ls, loadop)
@@ -281,8 +276,8 @@ end
     ls = LoopVectorization.LoopSet(:StrideArrays)
     (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-    ls.vector_width[] = W
-    ls.isbroadcast[] = isbroadcast;
+    ls.vector_width = W
+    ls.isbroadcast = isbroadcast;
     itersym = first(loopsyms)
     L = _tuple_type_len(S)
     if L === nothing
@@ -301,13 +296,6 @@ end
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
     Expr(:block, LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
-    # Expr(
-    #     :block,
-    #     Expr(:meta,:inline),
-    #     ls.prepreamble,
-    #     LoopVectorization.lower(ls),
-    #     :dest
-    # )
     # ls
 end
 @generated function _materialize!(
@@ -321,8 +309,8 @@ end
     ls = LoopVectorization.LoopSet(:StrideArrays)
     (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
-    ls.vector_width[] = W
-    ls.isbroadcast[] = isbroadcast;
+    ls.vector_width = W
+    ls.isbroadcast = isbroadcast;
     destref = LoopVectorization.ArrayReference(:_dest, copy(loopsyms))
     destmref = LoopVectorization.ArrayReferenceMeta(destref, fill(true, length(LoopVectorization.getindices(destref))))
     sp = sort_indices!(destmref, R, C)
