@@ -298,7 +298,9 @@ end
     storeop = LoopVectorization.add_simple_store!(ls, :dest, LoopVectorization.ArrayReference(:dest, loopsyms), elementbytes)
     LoopVectorization.doaddref!(ls, storeop)
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
-    Expr(:block, LoopVectorization.setup_call(ls, :(throw("check args failed?!?")), LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
+    # fallback in case `check_args` fails
+    fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
+    Expr(:block, LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
     # Expr(
     #     :block,
     #     Expr(:meta,:inline),
@@ -364,15 +366,9 @@ end
     # end
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
     # return ls
-    Expr(:block, LoopVectorization.setup_call(ls, :(throw("check args failed?!?")), LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
-    # ls.vector_width[] = VectorizationBase.pick_vector_width(T)
-    # return ls
-    # Expr(
-    #     :block,
-    #     ls.prepreamble,
-    #     LoopVectorization.lower(ls, 0),
-    #     :dest
-    # )
+    # fallback in case `check_args` fails
+    fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
+    Expr(:block, LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
 end
 
 @inline function Base.Broadcast.materialize!(
