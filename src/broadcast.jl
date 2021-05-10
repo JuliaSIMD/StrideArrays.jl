@@ -68,10 +68,10 @@ Base.BroadcastStyle(a::LinearStyle{S,N}, b::LinearStyle{S,N}) where {S,N} = Cart
     N2 > N1 && return :(Base.Broadcast.Unknown())
     S = Expr(:curly, :Tuple)
     for n ∈ 1:N2#min(N1,N2)
-        _s1 = _extract(S1.parameters[n])
-        _s2 = _extract(S2.parameters[n])
-        s1 = (_s1 === nothing ? -1 : _s1)::Int
-        s2 = (_s2 === nothing ? -1 : _s2)::Int
+        _s1 = S1.parameters[n]
+        _s2 = S2.parameters[n]
+        s1 = (_s1 isa Int ? _s1 : -1)::Int
+        s2 = (_s2 isa Int ? _s2 : -1)::Int
         if s1 == s2
             push!(S.args, s1)
         elseif s2 == 1
