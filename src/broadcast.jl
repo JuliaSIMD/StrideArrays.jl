@@ -7,7 +7,14 @@ _extract(_) = nothing
 abstract type AbstractStrideStyle{S,N} <: Base.Broadcast.AbstractArrayStyle{N} end
 struct LinearStyle{S,N,R} <: AbstractStrideStyle{S,N} end
 struct CartesianStyle{S,N} <: AbstractStrideStyle{S,N} end
-Base.BroadcastStyle(::Type{A}) where {S,D,T,N,C,B,R,A<:AbstractStrideArray{S,D,T,N,C,B,R}} = all(D) ? LinearStyle{S,N,R}() : CartesianStyle{S,N}()
+@generated function Base.BroadcastStyle(::Type{A}) where {S,D,T,N,C,B,R,A<:AbstractStrideArray{S,D,T,N,C,B,R}}
+  t = Expr(:curly,:Tuple)
+  for s ∈ S.parameters
+    _s = _extract(s)
+    _s === nothing ? push!(t.args, Int) : push!(t.args, _s)
+  end
+  all(D) ? :(LinearStyle{$t,$N,$R}()) : :(CartesianStyle{$S,$N}())
+end
 # Base.BroadcastStyle(::Type{A}) where {S,T,N,X,SN,XN,A<:AbstractStrideArray{S,T,N,X,SN,XN,true}} = CartesianStyle{S,N}()
 # function reverse_simplevec(S, N = length(S))
 #     Srev = Expr(:curly, :Tuple)
@@ -41,24 +48,15 @@ const StrideArrayProduct = Union{
 
 
 @generated function Base.BroadcastStyle(::Type{P}) where {SA,A<:AbstractStrideArray{SA}, SB, B<:AbstractStrideArray{SB}, P<:LoopVectorization.Product{A,B}}
-    t = Expr(:curly, :Tuple)
-    M = _extract(SA.parameters[1])
-    if M === nothing
-        push!(t.args, :Int)
-    else
-        push!(t.args, Expr(:curly, :StaticInt, M))
-    end
-    if isone(length(SB.parameters))
-        return :(CartesianStyle{$t,1}())
-    else
-        N = _extract(SB.parameters[2])
-        if N === nothing
-            push!(t.args, :Int)
-        else
-            push!(t.args, Expr(:curly, :StaticInt, N))
-        end
-    end
-    :(CartesianStyle{$t,2}())
+  t = Expr(:curly, :Tuple)
+  M = _extract(SA.parameters[1])
+  D = length(SB.parameters)
+  D ∈ (1,2) || throw(ArgumentError("In A*B, B should be a vector or matrix, but ndims(B) == $D."))
+  M === nothing ? push!(t.args, :Int) : push!(t.args, M)
+  D == 1 && return :(CartesianStyle{$t,1}())
+  N = _extract(SB.parameters[2])
+  N === nothing ? push!(t.args, :Int) : push!(t.args, N)
+  :(CartesianStyle{$t,2}())
 end
 
 @generated Base.BroadcastStyle(a::CartesianStyle{S,N1}, b::Base.Broadcast.DefaultArrayStyle{N2}) where {S,N1,N2} = N2 > N1 ? Base.Broadcast.Unknown() : :a
@@ -67,10 +65,8 @@ Base.BroadcastStyle(a::CartesianStyle{S,N}, b::AbstractStrideStyle{S,N}) where {
 Base.BroadcastStyle(a::LinearStyle{S,N,R}, b::LinearStyle{S,N,R}) where {S,N,R} = a # ranks match
 Base.BroadcastStyle(a::LinearStyle{S,N}, b::LinearStyle{S,N}) where {S,N} = CartesianStyle{S,N}() # ranks don't match
 @generated function Base.BroadcastStyle(a::AbstractStrideStyle{S1,N1}, b::AbstractStrideStyle{S2,N2}) where {S1,S2,N1,N2}
-#    @show N2, N1
     N2 > N1 && return :(Base.Broadcast.Unknown())
     S = Expr(:curly, :Tuple)
-    # foundfirstdiff = false
     for n ∈ 1:N2#min(N1,N2)
         _s1 = _extract(S1.parameters[n])
         _s2 = _extract(S2.parameters[n])
@@ -79,11 +75,8 @@ Base.BroadcastStyle(a::LinearStyle{S,N}, b::LinearStyle{S,N}) where {S,N} = Cart
         if s1 == s2
             push!(S.args, s1)
         elseif s2 == 1
-            # foundfirstdiff = true
             push!(S.args, s1)
         elseif s1 == 1
-            # foundfirstdiff || return Base.Broadcast.Unknown()
-            # foundfirstdiff = true
             push!(S.args, s2)
         elseif s2 == -1
             push!(S.args, s1)
@@ -93,16 +86,9 @@ Base.BroadcastStyle(a::LinearStyle{S,N}, b::LinearStyle{S,N}) where {S,N} = Cart
             throw("Mismatched sizes: $S1, $S2.")
         end
     end
-    # if N2 > N1
-    #     for n ∈ N1+1:N2
-    #         push!(S.args, S2.parameters[n])
-    #     end
-    # else
-    # if N1 > N2
     for n ∈ N2+1:N1
         push!(S.args, S1.parameters[n])
     end
-    # end
     Expr(:call, Expr(:curly, :CartesianStyle, S, max(N1,N2)))
 end
 
@@ -295,7 +281,7 @@ end
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
     # ls
 end
 @generated function _materialize!(
@@ -356,7 +342,7 @@ end
     # return ls
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int), :dest)
 end
 
 @inline function Base.Broadcast.materialize!(
@@ -391,14 +377,14 @@ end
     Base.Broadcast.materialize!(similar(bc, ElType), bc)
 end
 
-LoopVectorization.vmaterialize(bc::Base.Broadcast.Broadcasted{<:AbstractStrideStyle}) = Base.Broadcast.materialize(bc)
-LoopVectorization.vmaterialize!(dest, bc::Base.Broadcast.Broadcasted{<:AbstractStrideStyle}) = Base.Broadcast.materialize!(dest, bc)
+@inline LoopVectorization.vmaterialize(bc::Base.Broadcast.Broadcasted{<:AbstractStrideStyle}) = Base.Broadcast.materialize(bc)
+@inline LoopVectorization.vmaterialize!(dest, bc::Base.Broadcast.Broadcasted{<:AbstractStrideStyle}) = Base.Broadcast.materialize!(dest, bc)
 
-LoopVectorization.vmaterialize(bc::StrideArrayProduct) = Base.Broadcast.materialize(bc)
-LoopVectorization.vmaterialize!(dest, bc::StrideArrayProduct) = Base.Broadcast.materialize!(dest, bc)
+@inline LoopVectorization.vmaterialize(bc::StrideArrayProduct) = Base.Broadcast.materialize(bc)
+@inline LoopVectorization.vmaterialize!(dest, bc::StrideArrayProduct) = Base.Broadcast.materialize!(dest, bc)
 
-Base.:(+)(A::AbstractStrideArray, B::AbstractStrideArray) = A .+ B
-Base.:(-)(A::AbstractStrideArray, B::AbstractStrideArray) = A .- B
+@inline Base.:(+)(A::AbstractStrideArray, B::AbstractStrideArray) = A .+ B
+@inline Base.:(-)(A::AbstractStrideArray, B::AbstractStrideArray) = A .- B
 
-Base.unaliascopy(A::AbstractStrideArray) = A
+@inline Base.unaliascopy(A::AbstractStrideArray) = A
 

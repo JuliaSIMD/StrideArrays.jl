@@ -83,4 +83,11 @@ end
     StrideArray(make_dynamic(PtrArray(A)), A.data)
 end
 
+@inline function Base.exp(A::AbstractStrideArray)
+  B = copy(A)
+  GC.@preserve C = LinearAlgebra.exp!(B)
+  B === C || copyto!(B, C)
+  return B
+end
+
 
