@@ -54,6 +54,8 @@ end
     @test ArrayInterface.stride_rank(StrideArrays.similar_layout(A')) === ArrayInterface.stride_rank(StrideArrays.similar_layout(Aa')) === (StaticInt(2),StaticInt(1))
     @test ArrayInterface.contiguous_axis(StrideArrays.similar_layout(A')) === ArrayInterface.contiguous_axis(StrideArrays.similar_layout(Aa')) === StrideArrays.StaticInt{2}()
     
-    
+    let B = @StrideArray rand(10,10)
+        @test exp(B) ≈ exp(Array(B))
+    end
 end
 
