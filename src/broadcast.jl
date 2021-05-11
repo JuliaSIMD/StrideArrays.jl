@@ -217,7 +217,7 @@ end
 function sort_indices!(ar, R, C)
     any(i -> R[i-1] ≥ R[i], 2:length(R)) || return nothing
     li = ar.loopedindex; NN = length(li)
-    # all(n -> ((Xv[n+1]) % UInt) ≥ ((Xv[n]) % UInt), 1:NN-1) && return nothing    
+    # all(n -> ((Xv[n+1]) % UInt) ≥ ((Xv[n]) % UInt), 1:NN-1) && return nothing
     inds = LoopVectorization.getindices(ar); offsets = ar.ref.offsets;
     sp = rank_to_sortperm(R)
     # sp = sortperm(reinterpret(UInt,Xv), alg = Base.Sort.DEFAULT_STABLE)
@@ -302,7 +302,7 @@ end
     sp = sort_indices!(destmref, R, C)
     for n ∈ 1:N
         itersym = loopsyms[n]#isnothing(sp) ? n : sp[n]]
-        # _s = 
+        # _s =
         Sₙ =_extract(S.parameters[n])# (_s === nothing ? -1 : _s)::Int
         if Sₙ === nothing
             Sₙsym = gensym(:Sₙ); Rₙsym = gensym(:Rₙ)
@@ -372,6 +372,11 @@ end
 #     q
 #     # ls
 # end
+
+@inline function Base.Broadcast.materialize!(dest::AbstractStrideArray{S,D,T,N,C,B,R,X,O}, bc::Base.Broadcast.Broadcasted{ArrayStyle, Nothing, typeof(identity), Tuple{T}}) where {S,D,T,N,C,B,R,X,O,ArrayStyle}
+    fill!(dest, first(bc.args))
+end
+
 @inline function Base.Broadcast.materialize(bc::Base.Broadcast.Broadcasted{S}) where {S <: AbstractStrideStyle}
     ElType = Base.Broadcast.combine_eltypes(bc.f, bc.args)
     Base.Broadcast.materialize!(similar(bc, ElType), bc)
