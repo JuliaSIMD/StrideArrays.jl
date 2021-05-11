@@ -12,6 +12,8 @@ using StrideArrays, Test
     Da = @. exp(Aa) + ba * log(ca');
 
     @test D ≈ Da
+    A .= zero(eltype(A))
+    @test all(==(0), A)
     # end
 end
 
