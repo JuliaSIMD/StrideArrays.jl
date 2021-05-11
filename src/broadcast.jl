@@ -373,7 +373,7 @@ end
 #     # ls
 # end
 
-@inline function Base.Broadcast.materialize!(dest::AbstractStrideArray{S,D,T,N,C,B,R,X,O}, bc::Base.Broadcast.Broadcasted{DefaultArrayStyle{0}, Nothing, typeof(identity), Tuple{T2}}) where {S,D,T<:NativeTypes,N,C,B,R,X,O,T2<:Number}
+@inline function Base.Broadcast.materialize!(dest::AbstractStrideArray{S,D,T,N,C,B,R,X,O}, bc::Base.Broadcast.Broadcasted{DefaultArrayStyle{0}, Nothing, typeof(identity), Tuple{T2}}) where {S,D,T,N,C,B,R,X,O,T2<:Number}
     fill!(dest, first(bc.args))
 end
 
