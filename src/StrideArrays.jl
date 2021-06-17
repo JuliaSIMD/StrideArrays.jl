@@ -8,14 +8,11 @@ using VectorizationBase, ArrayInterface,
     Random#, StackPointers#,
     # SpecialFunctions # Perhaps there is a better way to support erf?
 
-using VectorizationBase: align, gep, AbstractStridedPointer, AbstractSIMDVector, vnoaliasstore!, staticm1,
-    static_sizeof, lazymul, vmul_fast, StridedPointer, gesp, zero_offsets, pause, zstridedpointer,
-    val_dense_dims, val_stride_rank, preserve_buffer
-using LoopVectorization: maybestaticsize, CloseOpen
+using VectorizationBase: align, AbstractStridedPointer, AbstractSIMDVector, StridedPointer, gesp, pause, zstridedpointer, val_dense_dims, preserve_buffer
+using LoopVectorization: CloseOpen
 using Static: StaticInt, Zero, One, StaticBool, True, False
-using ArrayInterface: OptionallyStaticUnitRange, size, strides, offsets, indices,
-    static_length, static_first, static_last, axes,
-    dense_dims, stride_rank
+using ArrayInterface: size, strides, offsets, indices,
+    static_length, axes, dense_dims, stride_rank
 using StrideArraysCore: AbstractStrideArray, AbstractStrideMatrix, AbstractStrideVector,
     AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm,
     StrideArray, StrideVector, StrideMatrix, similar_layout,
