@@ -8,11 +8,11 @@ InteractiveUtils.versioninfo(stdout; verbose = true)
 const START_TIME = time()
 
 @time @testset "StrideArrays.jl" begin
-    Aqua.test_all(StrideArrays)
-    # @test isempty(detect_unbound_args(StrideArrays))
-    @time include("matmul_tests.jl")
-    @time include("misc.jl")
-    @time include("broadcast_tests.jl")
+  @time Aqua.test_all(StrideArrays, ambiguities = VERSION ≥ v"1.6")
+  # @test isempty(detect_unbound_args(StrideArrays))
+  @time include("matmul_tests.jl")
+  @time include("misc.jl")
+  @time include("broadcast_tests.jl")
 end
 
 const ELAPSED_MINUTES = (time() - START_TIME)/60
