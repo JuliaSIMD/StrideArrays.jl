@@ -18,7 +18,7 @@ VectorizedRNG = "33b4df10-0173-11e9-2a0c-851a7edac40e"
 
 [compat]
 ArrayInterface = "3"
-LoopVectorization = "0.12.41"
+LoopVectorization = "0.12.50"
 Octavian = "0.2.3"
 SLEEFPirates = "0.6.13"
 Static = "0.2.4"
