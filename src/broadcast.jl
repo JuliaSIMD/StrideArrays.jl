@@ -281,7 +281,7 @@ end
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, false), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, 0), :dest)
     # ls
 end
 @generated function _materialize!(
@@ -342,7 +342,7 @@ end
     # return ls
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, false), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, 0), :dest)
 end
 
 @inline function Base.Broadcast.materialize!(

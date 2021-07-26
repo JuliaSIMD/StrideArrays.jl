@@ -1,7 +1,7 @@
 name = "StrideArrays"
 uuid = "d1fa6d79-ef01-42a6-86c9-f7c551f8593b"
 authors = ["Chris Elrod <elrodc@gmail.com> and contributors"]
-version = "0.1.11"
+version = "0.1.12"
 
 [deps]
 ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
@@ -18,7 +18,7 @@ VectorizedRNG = "33b4df10-0173-11e9-2a0c-851a7edac40e"
 
 [compat]
 ArrayInterface = "3"
-LoopVectorization = "0.12.50"
+LoopVectorization = "0.12.54"
 Octavian = "0.2.3"
 SLEEFPirates = "0.6.13"
 Static = "0.2.4, 0.3"
