@@ -260,7 +260,7 @@ end
     # need to construct the LoopSet
     loopsyms = [gensym(:n)]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+    (inline, u₁, u₂, v, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
     ls.vector_width = W
     ls.isbroadcast = isbroadcast;
@@ -281,19 +281,18 @@ end
     resize!(ls.loop_order, LoopVectorization.num_loops(ls)) # num_loops may be greater than N, eg Product
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, 0), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, v, threads%Int, 0), :dest)
     # ls
 end
 @generated function _materialize!(
 # function _materialize!(
     dest::AbstractStrideArray{S,D,T,N,C,B,R}, bc::BC, ::Val{UNROLL}
 ) where {S, D, T, N, C, B, R, BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}, UNROLL}
-    # 1+1
     # we have an N dimensional loop.
     # need to construct the LoopSet
     loopsyms = [gensym(:n) for n ∈ 1:N]
     ls = LoopVectorization.LoopSet(:StrideArrays)
-    (inline, u₁, u₂, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
+    (inline, u₁, u₂, v, isbroadcast, W, rs, rc, cls, l1, l2, l3, threads) = UNROLL
     LoopVectorization.set_hw!(ls, rs, rc, cls, l1, l2, l3)
     ls.vector_width = W
     ls.isbroadcast = isbroadcast;
@@ -342,13 +341,13 @@ end
     # return ls
     # fallback in case `check_args` fails
     fallback = :(copyto!(dest, Base.Broadcast.instantiate(Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{$N}}(bc.f, bc.args, axes(dest)))))
-    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, threads%Int, 0), :dest)
+    Expr(:block, Expr(:meta, :inline), LoopVectorization.setup_call(ls, fallback, LineNumberNode(0), inline, false, u₁, u₂, v, threads%Int, 0), :dest)
 end
 
 @inline function Base.Broadcast.materialize!(
     dest::AbstractStrideArray, bc::BC
 ) where {BC <: Union{Base.Broadcast.Broadcasted,StrideArrayProduct}}
-    _materialize!(dest, bc, LoopVectorization.avx_config_val(Val((true,zero(Int8),zero(Int8),true,-1%UInt)), pick_vector_width(eltype(dest))))
+  _materialize!(dest, bc, LoopVectorization.avx_config_val(Val((true,zero(Int8),zero(Int8),zero(Int8),true,-1%UInt)), pick_vector_width(eltype(dest))))
 end
 
 # @generated function Base.Broadcast.materialize!(
@@ -374,12 +373,12 @@ end
 # end
 
 @inline function Base.Broadcast.materialize!(dest::AbstractStrideArray{S,D,T,N,C,B,R,X,O}, bc::Base.Broadcast.Broadcasted{Base.Broadcast.DefaultArrayStyle{0}, Nothing, typeof(identity), Tuple{T2}}) where {S,D,T,N,C,B,R,X,O,T2<:Number}
-    fill!(dest, first(bc.args))
+  fill!(dest, first(bc.args))
 end
 
 @inline function Base.Broadcast.materialize(bc::Base.Broadcast.Broadcasted{S}) where {S <: AbstractStrideStyle}
-    ElType = Base.Broadcast.combine_eltypes(bc.f, bc.args)
-    Base.Broadcast.materialize!(similar(bc, ElType), bc)
+  ElType = Base.Broadcast.combine_eltypes(bc.f, bc.args)
+  Base.Broadcast.materialize!(similar(bc, ElType), bc)
 end
 
 @inline LoopVectorization.vmaterialize(bc::Base.Broadcast.Broadcasted{<:AbstractStrideStyle}) = Base.Broadcast.materialize(bc)
