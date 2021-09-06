@@ -12,7 +12,7 @@ using VectorizationBase: align, AbstractStridedPointer, AbstractSIMDVector, Stri
 using LoopVectorization: CloseOpen
 using Static: StaticInt, Zero, One, StaticBool, True, False
 using ArrayInterface: size, strides, offsets, indices,
-    static_length, axes, dense_dims, stride_rank
+    static_length, axes, dense_dims, stride_rank, StrideIndex
 using StrideArraysCore: AbstractStrideArray, AbstractStrideMatrix, AbstractStrideVector,
     AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm,
     StrideArray, StrideVector, StrideMatrix, similar_layout,
