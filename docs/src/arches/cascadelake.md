@@ -11,7 +11,7 @@ The `SMatrix` and `MMatrix` are the immutable and immutable matrix types from `S
 `SMatrix` were only benchmarked up to size `20`x`20`. As their performance at larger sizes recently increased, I'll increase the size range at which I benchmark them in the future.
 
 
-Multithreading benchmarks were run using [BLASBenchmarks.jl](https://github.com/chriselrod/BLASBenchmarks.jl):
+Multithreading benchmarks were run using [BLASBenchmarks.jl](https://github.com/JuliaSIMD/BLASBenchmarks.jl):
 ![multithreadedbenchmarks](../assets/gemm_Float64_10_10000_cascadelake_AVX512__multithreaded_logscale.svg)
 
 The single-threaded dynamic multiplication is competitive with `MKL` and `OpenBLAS` from around `2`x`2` to `256`x`256`:

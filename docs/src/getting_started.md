@@ -6,7 +6,7 @@ using Pkg
 Pkg.add("StrideArrays")
 ```
 
-This library is built on [ArrayInterface.jl](https://github.com/SciML/ArrayInterface.jl) and [LoopVectorization.jl](https://github.com/chriselrod/LoopVectorization.jl).
+This library is built on [ArrayInterface.jl](https://github.com/SciML/ArrayInterface.jl) and [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl).
 It is still somewhat experimental, and many features such as good linear algebra support, are still missing. It aims to achieve high performance and provide flexibility, while keeping implementations simple.
 
 Please file issues if you encounter problems or have feature requests.
