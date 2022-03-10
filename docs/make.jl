@@ -4,11 +4,11 @@ using Documenter
 makedocs(;
     modules=[StrideArrays],
     authors="Chris Elrod",
-    repo="https://github.com/chriselrod/StrideArrays.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaSIMD/StrideArrays.jl/blob/{commit}{path}#L{line}",
     sitename="StrideArrays.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://chriselrod.github.io/StrideArrays.jl",
+        canonical="https://JuliaSIMD.github.io/StrideArrays.jl",
         assets=String[],
     ),
     pages=[
@@ -27,5 +27,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/chriselrod/StrideArrays.jl",
+    repo="github.com/JuliaSIMD/StrideArrays.jl",
 )
