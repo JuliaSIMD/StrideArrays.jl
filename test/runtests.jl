@@ -8,7 +8,8 @@ InteractiveUtils.versioninfo(stdout; verbose = true)
 const START_TIME = time()
 
 @time @testset "StrideArrays.jl" begin
-  @time Aqua.test_all(StrideArrays, ambiguities = VERSION ≥ v"1.6")
+  @time Aqua.test_all(StrideArrays, ambiguities = false, project_toml_formatting = false)
+  @test isempty(Test.detect_ambiguities(StrideArrays))
   # @test isempty(detect_unbound_args(StrideArrays))
   @time include("matmul_tests.jl")
   @time include("misc.jl")
