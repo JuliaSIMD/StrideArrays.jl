@@ -27,8 +27,12 @@ end
   gc_preserve_call_expr(:(vmapreduce(f, op, A)), K)
 end
 @inline Base.mapreduce(f::F, op::O, A::AbstractStrideArray, args::Vararg{AbstractArray,K}) where {F, O, K} = gc_preserve_mapreduce(f, op, A, args...)
-@inline function Base.mapreduce(f::F, op::O, A::AbstractStrideArray) where {F, O}
-  @gc_preserve vmapreduce(f, op, A)
+@inline function Base.mapreduce(f::F, op::O, A::AbstractStrideArray) where {F,O}
+  if (LoopVectorization.check_args(A) && LoopVectorization.all_dense(A))
+    @gc_preserve vmapreduce(f, op, A)
+  else
+    return @gc_preserve Base.invoke(Base.mapreduce, Tuple{F,O,AbstractArray{eltype(A)}}, f, op, A)
+  end
 end
 
 for (op,r) ∈ ((:+,:sum), (:max,:maximum), (:min,:minimum))
