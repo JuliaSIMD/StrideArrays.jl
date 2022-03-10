@@ -13,7 +13,6 @@ const START_TIME = time()
   # - map(f::F, A::AbstractStrideArray, args::Vararg{Any, K}) where {F, K} in StrideArrays at StrideArrays/src/miscellaneous.jl:22
   # - map(f, a1::AbstractArray, a2::StaticArrays.StaticArray, as::AbstractArray...) in StaticArrays at StaticArrays/0bweZ/src/mapreduce.jl:33
   @time @test length(Test.detect_ambiguities(StrideArrays)) <= 1
-
   # @test isempty(detect_unbound_args(StrideArrays))
   @time include("matmul_tests.jl")
   @time include("misc.jl")
