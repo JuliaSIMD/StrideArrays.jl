@@ -103,7 +103,7 @@ end
         if l === nothing
             push!(t.args, Expr(:ref, :s, i))
         else
-            push!(t.args, static_expr(l))
+            push!(t.args, StaticInt(l))
         end
     end
     t
@@ -114,12 +114,7 @@ function Base.similar(
     StrideArray{T}(undef, to_tuple(S,size(bc)))
 end
 @generated function to_tuple(::Type{S}) where {N,S<:Tuple{Vararg{StaticInt,N}}}
-    t = Expr(:tuple)
-    Sp = S.parameters
-    for i in 1:N
-        push!(t.args, static_expr(_extract(Sp[i])))
-    end
-    t
+  map(StaticInt, known(S))
 end
 function Base.similar(
     bc::Base.Broadcast.Broadcasted{FS}, ::Type{T}

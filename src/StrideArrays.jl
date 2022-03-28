@@ -10,11 +10,11 @@ using VectorizationBase, ArrayInterface,
 
 using VectorizationBase: align, AbstractStridedPointer, AbstractSIMDVector, StridedPointer, gesp, pause, zstridedpointer, val_dense_dims, preserve_buffer
 using LoopVectorization: CloseOpen
-using Static: StaticInt, Zero, One, StaticBool, True, False
+using Static: StaticInt, Zero, One, StaticBool, True, False, known
 using ArrayInterface: size, strides, offsets, indices,
     static_length, axes, dense_dims, stride_rank, StrideIndex
 using StrideArraysCore: AbstractStrideArray, AbstractStrideMatrix, AbstractStrideVector,
-    AbstractPtrStrideArray, PtrArray, static_expr, rank_to_sortperm,
+    AbstractPtrStrideArray, PtrArray, rank_to_sortperm,
     StrideArray, StrideVector, StrideMatrix, similar_layout,
     @gc_preserve
 

@@ -15,7 +15,7 @@ function rand_expr(expr, args...)
     for i in 2:length(expr.args)
         aᵢ = expr.args[i]
         if aᵢ isa Integer
-            push!(array.args, static_expr(Int(aᵢ)))
+            push!(array.args, StaticInt(Int(aᵢ)))
         elseif Meta.isexpr(aᵢ, :$, 1)
             push!(array.args, Expr(:call, GlobalRef(StrideArrays, :StaticInt), (only(aᵢ.args))))
         else
