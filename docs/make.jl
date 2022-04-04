@@ -2,30 +2,25 @@ using StrideArrays
 using Documenter
 
 makedocs(;
-    modules=[StrideArrays],
-    authors="Chris Elrod",
-    repo="https://github.com/JuliaSIMD/StrideArrays.jl/blob/{commit}{path}#L{line}",
-    sitename="StrideArrays.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://JuliaSIMD.github.io/StrideArrays.jl",
-        assets=String[],
+    modules = [StrideArrays],
+    authors = "Chris Elrod",
+    repo = "https://github.com/JuliaSIMD/StrideArrays.jl/blob/{commit}{path}#L{line}",
+    sitename = "StrideArrays.jl",
+    format = Documenter.HTML(;
+        prettyurls = get(ENV, "CI", "false") == "true",
+        canonical = "https://JuliaSIMD.github.io/StrideArrays.jl",
+        assets = String[],
     ),
-    pages=[
+    pages = [
         "Home" => "index.md",
         "Getting Started" => "getting_started.md",
-        "Architecture Benchmarks" => [
-            "arches/cascadelake.md",
-            "arches/tigerlake.md",
-            "arches/haswell.md"
-        ],
+        "Architecture Benchmarks" =>
+            ["arches/cascadelake.md", "arches/tigerlake.md", "arches/haswell.md"],
         "Random Number Generation" => "rng.md",
         "Broadcasting" => "broadcasting.md",
-        "Stack Allocattion" => "stack_allocation.md"        
+        "Stack Allocattion" => "stack_allocation.md",
     ],
-    strict=false,
+    strict = false,
 )
 
-deploydocs(;
-    repo="github.com/JuliaSIMD/StrideArrays.jl",
-)
+deploydocs(; repo = "github.com/JuliaSIMD/StrideArrays.jl")

@@ -12,12 +12,15 @@ end
 
 function rand_expr(expr, args...)
     array = :(StrideArray(undef))
-    for i in 2:length(expr.args)
+    for i = 2:length(expr.args)
         aᵢ = expr.args[i]
         if aᵢ isa Integer
             push!(array.args, StaticInt(Int(aᵢ)))
         elseif Meta.isexpr(aᵢ, :$, 1)
-            push!(array.args, Expr(:call, GlobalRef(StrideArrays, :StaticInt), (only(aᵢ.args))))
+            push!(
+                array.args,
+                Expr(:call, GlobalRef(StrideArrays, :StaticInt), (only(aᵢ.args))),
+            )
         else
             push!(array.args, esc(aᵢ))
         end
@@ -49,4 +52,3 @@ Dimensions will be statically sized if specified by an integer literal, or if in
 macro StrideArray(expr, args...)
     rand_expr(expr, args...)
 end
-
