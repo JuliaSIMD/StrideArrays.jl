@@ -3,148 +3,132 @@
 using StrideArrays, VectorizationBase, ProgressMeter
 using StrideArrays: StaticFloat
 function jmultpackab!(
-    C,
-    A,
-    B,
-    ::Val{W₁},
-    ::Val{W₂},
-    ::Val{R₁},
-    ::Val{R₂},
+  C,
+  A,
+  B,
+  ::Val{W₁},
+  ::Val{W₂},
+  ::Val{R₁},
+  ::Val{R₂},
 ) where {W₁,W₂,R₁,R₂}
-    M, N = size(C)
-    K = size(B, 1)
-    zc, za, zb = StrideArrays.zstridedpointer.((C, A, B))
-    @elapsed(
-        StrideArrays.jmultpackAB!(
-            zc,
-            za,
-            zb,
-            StaticInt{1}(),
-            StaticInt{0}(),
-            M,
-            K,
-            N,
-            VectorizationBase.NUM_CORES,
-            StaticFloat{W₁}(),
-            StaticFloat{W₂}(),
-            StaticFloat{R₁}(),
-            StaticFloat{R₂}(),
-        )
+  M, N = size(C)
+  K = size(B, 1)
+  zc, za, zb = StrideArrays.zstridedpointer.((C, A, B))
+  @elapsed(
+    StrideArrays.jmultpackAB!(
+      zc,
+      za,
+      zb,
+      StaticInt{1}(),
+      StaticInt{0}(),
+      M,
+      K,
+      N,
+      VectorizationBase.NUM_CORES,
+      StaticFloat{W₁}(),
+      StaticFloat{W₂}(),
+      StaticFloat{R₁}(),
+      StaticFloat{R₂}(),
     )
+  )
 end
 
 function bench_size(
-    Cs,
-    As,
-    Bs,
-    ::Val{W₁},
-    ::Val{W₂},
-    ::Val{R₁},
-    ::Val{R₂},
+  Cs,
+  As,
+  Bs,
+  ::Val{W₁},
+  ::Val{W₂},
+  ::Val{R₁},
+  ::Val{R₂},
 ) where {W₁,W₂,R₁,R₂}
-    if length(first(Cs)) < length(last(Cs))
-        jmultpackab!(
-            first(Cs),
-            first(As),
-            first(Bs),
-            Val{W₁}(),
-            Val{W₂}(),
-            Val{R₁}(),
-            Val{R₂}(),
-        )
-    else
-        jmultpackab!(
-            last(Cs),
-            last(As),
-            last(Bs),
-            Val{W₁}(),
-            Val{W₂}(),
-            Val{R₁}(),
-            Val{R₂}(),
-        )
-    end
-    gflop = 0.0
-    for (C, A, B) ∈ zip(Cs, As, Bs)
-        M, K, N = StrideArrays.matmul_sizes(C, A, B)
-        # sleep(0.5)
-        t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
-        gf = 2e-9M * K * N / t
-        gflop += gf
-    end
-    gflop / length(As)
+  if length(first(Cs)) < length(last(Cs))
+    jmultpackab!(
+      first(Cs),
+      first(As),
+      first(Bs),
+      Val{W₁}(),
+      Val{W₂}(),
+      Val{R₁}(),
+      Val{R₂}(),
+    )
+  else
+    jmultpackab!(last(Cs), last(As), last(Bs), Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
+  end
+  gflop = 0.0
+  for (C, A, B) ∈ zip(Cs, As, Bs)
+    M, K, N = StrideArrays.matmul_sizes(C, A, B)
+    # sleep(0.5)
+    t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
+    gf = 2e-9M * K * N / t
+    gflop += gf
+  end
+  gflop / length(As)
 end
 matrix_sizes(s::Int) = (s, s, s)
 matrix_sizes(MKN::NTuple{3,Int}) = MKN
 size_range(l, u, len) = round.(Int, exp.(range(log(l), stop = log(u), length = len)))
 function matrix_range(l, u, len, ::Type{T} = Float64) where {T}
-    matrix_range(size_range(l, u, len), T)
+  matrix_range(size_range(l, u, len), T)
 end
 function matrix_range(S, ::Type{T} = Float64) where {T}
-    Alen = 0
-    Blen = 0
-    Clen = 0
-    for s ∈ S
-        M, K, N = matrix_sizes(s)
-        Alen = max(Alen, M * K)
-        Blen = max(Blen, K * N)
-        Clen = max(Clen, M * N)
-    end
-    Abuf = rand(T, Alen)
-    Bbuf = rand(T, Blen)
-    Cbuf = rand(T, Clen)
-    As = Vector{
-        Base.ReshapedArray{T,2,SubArray{T,1,Vector{T},Tuple{Base.OneTo{Int}},true},Tuple{}},
-    }(
-        undef,
-        length(S),
-    )
-    Bs = similar(As)
-    Cs = similar(As)
-    for (i, s) ∈ enumerate(S)
-        M, K, N = matrix_sizes(s)
-        As[i] = reshape(view(Abuf, Base.OneTo(M * K)), (M, K))
-        Bs[i] = reshape(view(Bbuf, Base.OneTo(K * N)), (K, N))
-        Cs[i] = reshape(view(Cbuf, Base.OneTo(M * N)), (M, N))
-    end
-    Cs, As, Bs
+  Alen = 0
+  Blen = 0
+  Clen = 0
+  for s ∈ S
+    M, K, N = matrix_sizes(s)
+    Alen = max(Alen, M * K)
+    Blen = max(Blen, K * N)
+    Clen = max(Clen, M * N)
+  end
+  Abuf = rand(T, Alen)
+  Bbuf = rand(T, Blen)
+  Cbuf = rand(T, Clen)
+  As = Vector{
+    Base.ReshapedArray{T,2,SubArray{T,1,Vector{T},Tuple{Base.OneTo{Int}},true},Tuple{}},
+  }(
+    undef,
+    length(S),
+  )
+  Bs = similar(As)
+  Cs = similar(As)
+  for (i, s) ∈ enumerate(S)
+    M, K, N = matrix_sizes(s)
+    As[i] = reshape(view(Abuf, Base.OneTo(M * K)), (M, K))
+    Bs[i] = reshape(view(Bbuf, Base.OneTo(K * N)), (K, N))
+    Cs[i] = reshape(view(Cbuf, Base.OneTo(M * N)), (M, N))
+  end
+  Cs, As, Bs
 end
 function gflop_map(
-    Cs,
-    As,
-    Bs,
-    ::Val{W₁},
-    ::Val{W₂},
-    ::Val{R₁},
-    ::Val{R₂},
+  Cs,
+  As,
+  Bs,
+  ::Val{W₁},
+  ::Val{W₂},
+  ::Val{R₁},
+  ::Val{R₂},
 ) where {W₁,W₂,R₁,R₂}
-    if length(first(Cs)) < length(last(Cs))
-        jmultpackab!(
-            first(Cs),
-            first(As),
-            first(Bs),
-            Val{W₁}(),
-            Val{W₂}(),
-            Val{R₁}(),
-            Val{R₂}(),
-        )
-    else
-        jmultpackab!(
-            last(Cs),
-            last(As),
-            last(Bs),
-            Val{W₁}(),
-            Val{W₂}(),
-            Val{R₁}(),
-            Val{R₂}(),
-        )
-    end
-    gflops = Vector{Float64}(undef, length(Cs))
-    for (i, C, A, B) ∈ zip(eachindex(gflops), Cs, As, Bs)
-        M, K, N = StrideArrays.matmul_sizes(C, A, B)
-        t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
-        gflops[i] = 2e-9M * K * N / t
-    end
-    gflops
+  if length(first(Cs)) < length(last(Cs))
+    jmultpackab!(
+      first(Cs),
+      first(As),
+      first(Bs),
+      Val{W₁}(),
+      Val{W₂}(),
+      Val{R₁}(),
+      Val{R₂}(),
+    )
+  else
+    jmultpackab!(last(Cs), last(As), last(Bs), Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
+  end
+  gflops = Vector{Float64}(undef, length(Cs))
+  for (i, C, A, B) ∈ zip(eachindex(gflops), Cs, As, Bs)
+    M, K, N = StrideArrays.matmul_sizes(C, A, B)
+    t = jmultpackab!(C, A, B, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
+    gflops[i] = 2e-9M * K * N / t
+  end
+  gflops
 end
 
 # function gridsearch(
@@ -299,23 +283,22 @@ SR = size_range(max_size, min_size, 100);
 const CsConst, AsConst, BsConst = matrix_range(SR, T);
 
 function matmul_objective(params)
-    print("Params: ", params, "; ")
-    W₁, W₂, R₁, R₂ = params
-    # print("(W₁ = $(round(W₁, sigdigits=4)); W₂ = $(round(W₂, sigdigits=4)); R₁ = $(round(R₁, sigdigits=4)); R₂ = $(round(R₂, sigdigits=4))); ")
-    gflop =
-        bench_size(CsConst, AsConst, BsConst, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
-    println(gflop)
-    -gflop
+  print("Params: ", params, "; ")
+  W₁, W₂, R₁, R₂ = params
+  # print("(W₁ = $(round(W₁, sigdigits=4)); W₂ = $(round(W₂, sigdigits=4)); R₁ = $(round(R₁, sigdigits=4)); R₂ = $(round(R₂, sigdigits=4))); ")
+  gflop = bench_size(CsConst, AsConst, BsConst, Val{W₁}(), Val{W₂}(), Val{R₁}(), Val{R₂}())
+  println(gflop)
+  -gflop
 end
 
 using Optim
 hours = 60.0 * 60.0;
 days = 24hours;
 init = [
-    StrideArrays.W₁Default,
-    StrideArrays.W₂Default,
-    StrideArrays.R₁Default,
-    StrideArrays.R₂Default,
+  StrideArrays.W₁Default,
+  StrideArrays.W₂Default,
+  StrideArrays.R₁Default,
+  StrideArrays.R₂Default,
 ]
 # init = [0.0125, 0.025, 0.6275, 0.9579]
 # init = [0.0060790786747738235, 0.4531988431700635, 0.47560416900859487, 0.6776801310495106]
@@ -324,10 +307,10 @@ init = [
 #     Optim.Options(iterations = 10^6, time_limit = days/8)
 # );
 opt = Optim.optimize(
-    matmul_objective,
-    init,
-    ParticleSwarm(lower = [0.001, 0.01, 0.3, 0.4], upper = [0.1, 2.0, 0.9, 0.99]),
-    Optim.Options(iterations = 10^6, time_limit = days / 8),
+  matmul_objective,
+  init,
+  ParticleSwarm(lower = [0.001, 0.01, 0.3, 0.4], upper = [0.1, 2.0, 0.9, 0.99]),
+  Optim.Options(iterations = 10^6, time_limit = days / 8),
 );
 # (W₁ = 0.0125; W₂ = 0.025; R₁ = 0.6275; R₂ = 0.9579); 1551.5119875598948
 # (W₁ = 0.0125; W₂ = 0.025; R₁ = 0.6275; R₂ = 0.8122); 1467.716330273459
