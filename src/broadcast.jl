@@ -71,7 +71,7 @@ const StrideArrayProduct = Union{
 end
 
 @generated Base.BroadcastStyle(
-  ::CartesianStyle{S,N1},
+  a::CartesianStyle{S,N1},
   ::Base.Broadcast.DefaultArrayStyle{N2},
 ) where {S,N1,N2} = N2 > N1 ? Base.Broadcast.Unknown() : :a
 @generated Base.BroadcastStyle(
