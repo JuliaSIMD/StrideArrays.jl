@@ -16,5 +16,20 @@ using StrideArrays, Test
   @test D ≈ Da
   A .= zero(eltype(A))
   @test all(==(0), A)
+
+  
+
+  u1 = StrideArray(ones(1, 10), (static(1), 10));
+  u2 = StrideArray(collect(0:2:18)', (static(1), 10));
+  u3 = StrideArray(ones(2, 10), (static(2), 10));
+
+  @views u1[:, 1] .= u2[:, 1]
+  @views u3[:, 1] .= u2[:, 1]
+  @test u1[1] == 0
+  @test all(isone, @view(u1[1,2:end]))
+  @test u3[1,1] == 0
+  @test u3[2,1] == 0
+  @test all(isone, @view(u3[:,2:end]))
+  
   # end
 end

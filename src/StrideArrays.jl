@@ -52,7 +52,8 @@ export @StrideArray,
   *ˡ,
   StaticInt,
   matmul,
-  matmul_serial
+  matmul_serial,
+  static
 # LazyMap, 
 
 include("rand.jl")
