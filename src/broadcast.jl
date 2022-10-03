@@ -184,7 +184,7 @@ end
     dest,
     bc,
     LoopVectorization.avx_config_val(
-      Val((true, zero(Int8), zero(Int8), zero(Int8), true, one(UInt), 0)),
+      Val((true, zero(Int8), zero(Int8), zero(Int8), true, one(UInt), 0, true)),
       pick_vector_width(eltype(dest)),
     ),
   )
