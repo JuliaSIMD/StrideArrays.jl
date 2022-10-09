@@ -2,7 +2,7 @@
 
 Stack allocated arrays are great, as are mutable arrays.
 
-`StrideArrays.jl` tries it's hardest to provide you with both. As you may have noted from the RNG and broadcasting pages, we were creating mutable `StrideArray`s without suffering memory allocations, just like with the immutable `StaticArrays.SArray` type. The mutable `StaticArrays.MArray`, on the other hand, would have allocated:
+`StrideArrays.jl` tries its hardest to provide you with both. As you may have noted from the RNG and broadcasting pages, we were creating mutable `StrideArray`s without suffering memory allocations, just like with the immutable `StaticArrays.SArray` type. The mutable `StaticArrays.MArray`, on the other hand, would have allocated:
 ```julia
 julia> @benchmark sum(exp.(@StrideArray randn(8,10))) # StrideArrays
 BenchmarkTools.Trial:
