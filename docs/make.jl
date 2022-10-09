@@ -18,7 +18,7 @@ makedocs(;
       ["arches/cascadelake.md", "arches/tigerlake.md", "arches/haswell.md"],
     "Random Number Generation" => "rng.md",
     "Broadcasting" => "broadcasting.md",
-    "Stack Allocattion" => "stack_allocation.md",
+    "Stack Allocation" => "stack_allocation.md",
   ],
   strict = false,
 )
