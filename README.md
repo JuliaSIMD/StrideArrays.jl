@@ -8,7 +8,7 @@
 
 ### Caution
 
-StrideArrays do not bounds check by default.
+`StrideArray`s do not bounds check by default.
 To enable bounds checking, define
 ```julia
 StrideArraysCore.boundscheck() = true
