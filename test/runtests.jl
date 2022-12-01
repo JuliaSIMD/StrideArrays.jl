@@ -9,12 +9,15 @@ const START_TIME = time()
 
 @time @testset "StrideArrays.jl" begin
   @test isempty(Test.detect_unbound_args(StrideArrays))
-   
+
   @time Aqua.test_all(StrideArrays, ambiguities = false, project_toml_formatting = false, deps_compat = VERSION <= v"1.8" || isempty(VERSION.prerelease))
-  # Currently, there is one method ambiguity:
-  # - map(f::F, A::AbstractStrideArray, args::Vararg{Any, K}) where {F, K} in StrideArrays at StrideArrays/src/miscellaneous.jl:22
-  # - map(f, a1::AbstractArray, a2::StaticArrays.StaticArray, as::AbstractArray...) in StaticArrays at StaticArrays/0bweZ/src/mapreduce.jl:33
-  @time @test length(Test.detect_ambiguities(StrideArrays)) <= 1
+  # Currently, there are five method ambiguities:
+  # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number, β, γ) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
+  # (map(f::F, A::AbstractStrideArray, args::Vararg{Any, K}) where {F, K} in StrideArrays at StrideArrays/src/miscellaneous.jl:37, map(f, a1::AbstractArray, a2::StaticArraysCore.StaticArray, as::AbstractArray...) in StaticArrays at StaticArrays/B0HhH/src/mapreduce.jl:33)
+  # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number, β) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
+  # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
+  # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
+  @time @test length(Test.detect_ambiguities(StrideArrays)) <= 5
   # @test isempty(detect_unbound_args(StrideArrays))
   @time include("matmul_tests.jl")
   @time include("misc.jl")
