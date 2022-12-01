@@ -80,6 +80,7 @@ end
 ) where {S,N1,N2} = N2 > N1 ? Base.Broadcast.Unknown() : CartesianStyle{S,N1}()
 Base.BroadcastStyle(a::CartesianStyle{S,N}, ::AbstractStrideStyle{S,N}) where {S,N} = a
 Base.BroadcastStyle(::AbstractStrideStyle{S,N}, a::CartesianStyle{S,N}) where {S,N} = a
+Base.BroadcastStyle(a::CartesianStyle{S,N}, ::CartesianStyle{S,N}) where {S,N} = a # resolve ambiguities
 Base.BroadcastStyle(a::LinearStyle{S,N,R}, ::LinearStyle{S,N,R}) where {S,N,R} = a # ranks match
 Base.BroadcastStyle(::LinearStyle{S,N}, ::LinearStyle{S,N}) where {S,N} =
   CartesianStyle{S,N}() # ranks don't match
