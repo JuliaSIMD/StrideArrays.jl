@@ -17,7 +17,7 @@ using StrideArrays, Test
   A .= zero(eltype(A))
   @test all(==(0), A)
 
-  
+
 
   u1 = StrideArray(ones(1, 10), (static(1), 10));
   u2 = StrideArray(collect(2:2:20)', (static(1), 10));
@@ -31,7 +31,7 @@ using StrideArrays, Test
   @test u3[1,1] == 2
   @test u3[2,1] == 2
   @test all(isone, @view(u3[:,2:end]))
-  
+
   @views u1[:, 1] .= u4[:, 1]
   @views u3[:, 1] .= u4[:, 1]
   @test u1[1] == 0
@@ -39,6 +39,18 @@ using StrideArrays, Test
   @test u3[1,1] == 0
   @test u3[2,1] == 0
   @test all(isone, @view(u3[:,2:end]))
-  
+
   # end
+
+  @testset "issue #55" begin
+    src1 = rand(10)
+    src2 = rand(length(src1))
+    dst = zero(src1)
+
+    src1_ptr = PtrArray(src1)
+    src2_ptr = PtrArray(src2)
+    dst_ptr = PtrArray(dst)
+
+    @test_nowarn @. dst_ptr = muladd(1, src1_ptr, 2 * src2_ptr)
+  end
 end
