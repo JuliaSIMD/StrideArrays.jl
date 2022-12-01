@@ -52,5 +52,7 @@ using StrideArrays, Test
     dst_ptr = PtrArray(dst)
 
     @test_nowarn @. dst_ptr = muladd(1, src1_ptr, 2 * src2_ptr)
+    @. dst = muladd(1, src1, 2 * src2)
+    @test dst_ptr ≈ dst
   end
 end
