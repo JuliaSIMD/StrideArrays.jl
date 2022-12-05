@@ -101,7 +101,7 @@ function LinearAlgebra.mul!(
   M, K, N = matmul_axes(C, A, B)
   MandK = ArrayInterface._pick_range(M, K)
   vA = parent(A)
-  @avx for n ∈ N, m ∈ 1:MandK
+  @turbo for n ∈ N, m ∈ 1:MandK
     C[m, n] = vA[m] * B[m, n]
   end
   C

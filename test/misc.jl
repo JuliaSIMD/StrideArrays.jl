@@ -61,4 +61,12 @@ end
   let B = @StrideArray rand(10, 10)
     @test exp(B) ≈ exp(Array(B))
   end
+
+  C = @StrideArray rand(10, 10);
+  Ca = Array(C);
+  @test sum(C) ≈ sum(Ca)
+  @test sum(view(C, :, :)) ≈ sum(C[:,:]) ≈ sum(view(Ca, :, :))
+  @test sum(view(C, static(1):static(2), :)) ≈ sum(C[static(1):static(2), :]) ≈ sum(view(Ca, static(1):static(2), :))
+  @test C[static(1):static(2),:] === view(C, static(1):static(2), :)
+  @test view(C, :, :) === C[:,:]
 end
