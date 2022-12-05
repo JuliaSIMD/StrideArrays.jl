@@ -77,7 +77,7 @@ end
 import Statistics, VectorizedStatistics
 
 for (op, r) ∈ ((:max, :maximum), (:min, :minimum))
-  vr = Symbol('r', r)
+  vr = Symbol('v', r)
   @eval begin
     @inline function Base.reduce(::typeof($op), A::AbstractStrideArray{<:Number}; dim = (:), dims = (:))
       @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
