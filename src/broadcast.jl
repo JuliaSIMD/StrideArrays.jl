@@ -9,13 +9,15 @@ struct LinearStyle{S,N,R} <: AbstractStrideStyle{S,N} end
 struct CartesianStyle{S,N} <: AbstractStrideStyle{S,N} end
 @generated function Base.BroadcastStyle(
   ::Type{A},
-) where {S,D,T,N,C,B,R,A<:AbstractStrideArray{S,D,T,N,C,B,R}}
+) where {T,N,R,S,X,A<:AbstractStrideArray{T,N,R,S,X}}
   t = Expr(:curly, :Tuple)
-  for s ∈ S.parameters
-    _s = _extract(s)
-    _s === nothing ? push!(t.args, Int) : push!(t.args, _s)
+  for x ∈ X.parameters
+    x === nothing || return CartesianStyle{S,N}()
   end
-  all(D) ? :(LinearStyle{$t,$N,$R}()) : :(CartesianStyle{$S,$N}())
+  for s ∈ Static.known(S)
+    s === nothing ? push!(t.args, Int) : push!(t.args, s)
+  end
+  :(LinearStyle{$t,$N,$R}())
 end
 # Base.BroadcastStyle(::Type{A}) where {S,T,N,X,SN,XN,A<:AbstractStrideArray{S,T,N,X,SN,XN,true}} = CartesianStyle{S,N}()
 # function reverse_simplevec(S, N = length(S))
@@ -53,9 +55,9 @@ const StrideArrayProduct = Union{
   ::Type{P},
 ) where {
   SA,
-  A<:AbstractStrideArray{SA},
+  A<:AbstractStrideArray{<:Any,<:Any,<:Any,SA},
   SB,
-  B<:AbstractStrideArray{SB},
+  B<:AbstractStrideArray{<:Any,<:Any,<:Any,SB},
   P<:LoopVectorization.Product{A,B},
 }
   t = Expr(:curly, :Tuple)
@@ -115,9 +117,6 @@ Base.BroadcastStyle(::LinearStyle{S,N}, ::LinearStyle{S,N}) where {S,N} =
   Expr(:call, Expr(:curly, :CartesianStyle, S, max(N1, N2)))
 end
 
-# function Base.similar(
-# ::Base.Broadcast.Broadcasted{FS}, ::Type{T}
-# ) where {S,T<:Union{VectorizationBase.FloatingTypes,StrideArrays.VectorizationBase.IntTypes,StrideArrays.VectorizationBase.UIntTypes},N,FS<:AbstractStrideStyle{S,N}}
 @generated function to_tuple(::Type{S}, s) where {N,S<:Tuple{Vararg{Any,N}}}
   t = Expr(:tuple)
   Sp = S.parameters
@@ -158,10 +157,10 @@ end
 end
 # function Base.Broadcast.materialize!(
 @inline function _materialize!(
-  dest::AbstractStrideArray{S,D,T,N,C,B,R},
+  dest::AbstractStrideArray{<:Any,N,R,S},
   bc::BC,
   ::Val{UNROLL},
-) where {S,D,T,N,C,B,R,LS,FS<:LinearStyle{LS,N,R},BC<:Base.Broadcast.Broadcasted{FS},UNROLL}
+) where {S,N,R,LS,FS<:LinearStyle{LS,N,R},BC<:Base.Broadcast.Broadcasted{FS},UNROLL}
   if _linear_matches(Val{LS}(), Val{S}())
     LoopVectorization.vmaterialize!(vec(dest), _vecbc(bc), Val{:StrideArrays}(), Val{UNROLL}())
   else
@@ -171,10 +170,10 @@ end
 end
 @inline function _materialize!(
   # function _materialize!(
-  dest::AbstractStrideArray{S,D,T,N,C,B,R},
+  dest::AbstractStrideArray{<:Any,N,R,S},
   bc::BC,
   ::Val{UNROLL},
-) where {S,D,T,N,C,B,R,BC<:Union{Base.Broadcast.Broadcasted,StrideArrayProduct},UNROLL}
+) where {S,N,R,BC<:Union{Base.Broadcast.Broadcasted,StrideArrayProduct},UNROLL}
   LoopVectorization.vmaterialize!(dest, bc, Val{:StrideArrays}(), Val{UNROLL}())
 end
 
@@ -193,14 +192,14 @@ end
 end
 
 @inline function Base.Broadcast.materialize!(
-  dest::AbstractStrideArray{S,D,T,N,C,B,R,X,O},
+  dest::AbstractStrideArray,
   bc::Base.Broadcast.Broadcasted{
     Base.Broadcast.DefaultArrayStyle{0},
     Nothing,
     typeof(identity),
-    Tuple{T2},
+    Tuple{T},
   },
-) where {S,D,T,N,C,B,R,X,O,T2<:Number}
+) where {T}
   fill!(dest, first(bc.args))
 end
 

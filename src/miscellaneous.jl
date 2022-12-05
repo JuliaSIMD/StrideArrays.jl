@@ -36,6 +36,13 @@ end
 ) where {F} = gc_preserve_map!(f, A, arg1, arg2)
 @inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} =
   gc_preserve_map!(f, A, args...)
+using StaticArraysCore: StaticArray, SArray, MArray
+@inline Base.map(f::F, A::AbstractStrideArray, B::StaticArray, args::Vararg{AbstractArray,K}) where {F,K} =
+  gc_preserve_map!(f, A, B, args...)
+@inline function Base.map(f::F, A::AbstractStrideArray, B::SArray, args::Vararg{AbstractArray,K}) where {F,K}
+  BM = MArray(B)
+  gc_preserve_map!(f, A, BM, args...)
+end
 @inline Base.reduce(op::O, A::AbstractStrideArray{<:Number}) where {O} =
   @gc_preserve vreduce(op, A)
 @inline Base.reduce(::typeof(vcat), A::AbstractStrideArray{<:Number}) = A
@@ -78,8 +85,8 @@ for (op, r) ∈ ((:+, :sum), (:max, :maximum), (:min, :minimum))
 end
 
 function Base.copyto!(
-  B::AbstractStrideArray{<:Any,<:Any,<:Any,N},
-  A::AbstractStrideArray{<:Any,<:Any,<:Any,N},
+  B::AbstractStrideArray{<:Any,N},
+  A::AbstractStrideArray{<:Any,N},
 ) where {N}
   @avx for I ∈ eachindex(A, B)
     B[I] = A[I]
@@ -88,7 +95,7 @@ function Base.copyto!(
 end
 
 # why not `vmapreduce`?
-@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{S,D,T}) where {S,D,T}
+@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{T}) where {T}
   s = typemin(T)
   @avx for i ∈ eachindex(A)
     s = max(s, abs(A[i]))

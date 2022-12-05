@@ -17,7 +17,7 @@ const START_TIME = time()
   # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number, β) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
   # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
   # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
-  @time @test length(Test.detect_ambiguities(StrideArrays)) <= 5
+  @time @test length(Test.detect_ambiguities(StrideArrays)) == 0
   # @test isempty(detect_unbound_args(StrideArrays))
   @time include("matmul_tests.jl")
   @time include("misc.jl")
