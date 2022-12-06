@@ -1,6 +1,5 @@
 
 function gc_preserve_call_expr(c, K)
-  skip = length(c.args) - 2
   q = Expr(:block, Expr(:meta, :inline))
   for k ∈ 1:K
     push!(c.args, :(@inbounds(args[$k])))
@@ -36,6 +35,13 @@ end
 ) where {F} = gc_preserve_map!(f, A, arg1, arg2)
 @inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} =
   gc_preserve_map!(f, A, args...)
+using StaticArraysCore: StaticArray, SArray, MArray
+@inline Base.map(f::F, A::AbstractStrideArray, B::StaticArray, args::Vararg{AbstractArray,K}) where {F,K} =
+  gc_preserve_map!(f, A, B, args...)
+@inline function Base.map(f::F, A::AbstractStrideArray, B::SArray, args::Vararg{AbstractArray,K}) where {F,K}
+  BM = MArray(B)
+  gc_preserve_map!(f, A, BM, args...)
+end
 @inline Base.reduce(op::O, A::AbstractStrideArray{<:Number}) where {O} =
   @gc_preserve vreduce(op, A)
 @inline Base.reduce(::typeof(vcat), A::AbstractStrideArray{<:Number}) = A
@@ -68,29 +74,55 @@ end
   end
 end
 
-for (op, r) ∈ ((:+, :sum), (:max, :maximum), (:min, :minimum))
+import Statistics, VectorizedStatistics
+
+for (op, r) ∈ ((:max, :maximum), (:min, :minimum))
+  vr = Symbol('v', r)
   @eval begin
-    @inline Base.reduce(::typeof($op), A::AbstractStrideArray{<:Number}; dims = nothing) =
-      @gc_preserve vreduce($op, A, dims = dims)
-    @inline Base.$r(A::AbstractStrideArray; dims = nothing) =
-      @gc_preserve vreduce($op, A, dims = dims)
+    @inline function Base.reduce(::typeof($op), A::AbstractStrideArray{<:Number}; dim = (:), dims = (:))
+      @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
+    end
+    @inline function Base.$r(A::AbstractStrideArray; dim=(:), dims = (:))
+      @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
+    end
+  end
+end
+
+
+@inline Base.reduce(::typeof(+), A::AbstractStrideArray{<:Number}; dim = :, dims = :, multithreaded = False()) =
+  @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
+@inline Base.sum(A::AbstractStrideArray; dim=:, dims = :, multithreaded = False()) =
+  @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
+
+@inline Statistics.mean(A::AbstractStrideArray; dim=:, dims = :, multithreaded = False()) =
+  @gc_preserve VectorizedStatistics.vmean(A; dim, dims, multithreaded)
+@inline Statistics.std(A::AbstractStrideArray; dim=:, dims = :, mean=nothing, corrected=true, multithreaded = False()) =
+  @gc_preserve VectorizedStatistics.vstd(A; dim, dims, mean, corrected, multithreaded)
+@inline Statistics.var(A::AbstractStrideArray; dim=:, dims = :, mean=nothing, corrected=true, multithreaded = False()) =
+  @gc_preserve VectorizedStatistics.vvar(A; dim, dims, mean, corrected, multithreaded)
+
+for f = (:cov, :cor)
+  vf = Symbol('v', f)
+  @eval begin
+    @inline Statistics.$f(x::AbstractStrideVector, y::AbstractStrideVector; corrected = true, multithreaded=False()) = @gc_preserve VectorizedStatistics.$vf(x, y, corrected, multithreaded)
+    @inline Statistics.$f(x::AbstractStrideMatrix; dims::Int=1, corrected::Bool=true,multithreaded=False()) = @gc_preserve VectorizedStatistics.$vf(x, dims, corrected, multithreaded)
   end
 end
 
 function Base.copyto!(
-  B::AbstractStrideArray{<:Any,<:Any,<:Any,N},
-  A::AbstractStrideArray{<:Any,<:Any,<:Any,N},
+  B::AbstractStrideArray{<:Any,N},
+  A::AbstractStrideArray{<:Any,N},
 ) where {N}
-  @avx for I ∈ eachindex(A, B)
+  @turbo for I ∈ eachindex(A, B)
     B[I] = A[I]
   end
   B
 end
 
 # why not `vmapreduce`?
-@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{S,D,T}) where {S,D,T}
+@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{T}) where {T}
   s = typemin(T)
-  @avx for i ∈ eachindex(A)
+  @turbo for i ∈ eachindex(A)
     s = max(s, abs(A[i]))
   end
   s
@@ -105,10 +137,10 @@ end
   # TODO: Actually handle offsets
   @assert offsets(A) === offsets(B)
   @assert offsets(A) === offsets(C)
-  @avx for j ∈ axes(A, 2), i ∈ axes(A, 1)
+  @turbo for j ∈ axes(A, 2), i ∈ axes(A, 1)
     C[i, j] = A[i, j]
   end
-  @avx for j ∈ axes(B, 2), i ∈ axes(B, 1)
+  @turbo for j ∈ axes(B, 2), i ∈ axes(B, 1)
     C[i+MA, j] = B[i, j]
   end
   C
