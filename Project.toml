@@ -1,7 +1,7 @@
 name = "StrideArrays"
 uuid = "d1fa6d79-ef01-42a6-86c9-f7c551f8593b"
 authors = ["Chris Elrod <elrodc@gmail.com> and contributors"]
-version = "0.1.21"
+version = "0.1.22"
 
 [deps]
 ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
