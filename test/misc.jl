@@ -15,6 +15,7 @@ function gc_preserve_test()
   B = @StrideArray rand($(1 << 3), 8)
   @gc_preserve dostuff(A, B = B)
 end
+foo(x, f) = f(x)
 
 @testset "Miscellaneous" begin
   x = @StrideArray rand(127)
@@ -62,11 +63,25 @@ end
     @test exp(B) ≈ exp(Array(B))
   end
 
-  C = @StrideArray rand(10, 10);
-  Ca = Array(C);
+  C = @StrideArray rand(10, 10)
+  Ca = Array(C)
   @test sum(C) ≈ sum(Ca)
-  @test sum(view(C, :, :)) ≈ sum(C[:,:]) ≈ sum(view(Ca, :, :))
-  @test sum(view(C, static(1):static(2), :)) ≈ sum(C[static(1):static(2), :]) ≈ sum(view(Ca, static(1):static(2), :))
-  @test C[static(1):static(2),:] === view(C, static(1):static(2), :)
-  @test view(C, :, :) === C[:,:]
+  @test sum(view(C, :, :)) ≈ sum(C[:, :]) ≈ sum(view(Ca, :, :))
+  @test sum(view(C, static(1):static(2), :)) ≈
+        sum(C[static(1):static(2), :]) ≈
+        sum(view(Ca, static(1):static(2), :))
+  @test C[static(1):static(2), :] === view(C, static(1):static(2), :)
+  @test view(C, :, :) === C[:, :]
+
+  let
+    src1 = rand(10) .* 2 .- 1
+    dst = zero(src1)
+    GC.@preserve src1 dst begin
+      src1_ptr = PtrArray(src1)
+      dst_ptr = PtrArray(dst)
+      @. dst = foo(src1, abs)
+      @. dst_ptr = foo(src1_ptr, abs)
+      @test dst == dst_ptr
+    end
+  end
 end

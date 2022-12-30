@@ -79,8 +79,7 @@ end
 @inline Base.:*(
   A::AbstractStrideArray{S,D,T},
   b::UniformScaling{Tb},
-) where {S,D,T<:VectorizationBase.NativeTypes,Tb<:Real} =
-  A*b.λ
+) where {S,D,T<:VectorizationBase.NativeTypes,Tb<:Real} = A * b.λ
 @inline function Base.:*(
   A::AbstractStrideArray{S,D,T},
   λ::Tb,
