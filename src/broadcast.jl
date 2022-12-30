@@ -162,7 +162,12 @@ end
   ::Val{UNROLL},
 ) where {S,N,R,LS,FS<:LinearStyle{LS,N,R},BC<:Base.Broadcast.Broadcasted{FS},UNROLL}
   if _linear_matches(Val{LS}(), Val{S}())
-    LoopVectorization.vmaterialize!(vec(dest), _vecbc(bc), Val{:StrideArrays}(), Val{UNROLL}())
+    LoopVectorization.vmaterialize!(
+      vec(dest),
+      _vecbc(bc),
+      Val{:StrideArrays}(),
+      Val{UNROLL}(),
+    )
   else
     LoopVectorization.vmaterialize!(dest, bc, Val{:StrideArrays}(), Val{UNROLL}())
   end
@@ -185,7 +190,7 @@ end
     dest,
     bc,
     LoopVectorization.avx_config_val(
-      Val((true, zero(Int8), zero(Int8), zero(Int8), true, one(UInt), 0, true)),
+      Val((true, zero(Int8), zero(Int8), zero(Int8), true, one(UInt), 0, false)),
       pick_vector_width(eltype(dest)),
     ),
   )
