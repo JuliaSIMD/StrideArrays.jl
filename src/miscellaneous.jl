@@ -36,9 +36,18 @@ end
 @inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} =
   gc_preserve_map!(f, A, args...)
 using StaticArraysCore: StaticArray, SArray, MArray
-@inline Base.map(f::F, A::AbstractStrideArray, B::StaticArray, args::Vararg{AbstractArray,K}) where {F,K} =
-  gc_preserve_map!(f, A, B, args...)
-@inline function Base.map(f::F, A::AbstractStrideArray, B::SArray, args::Vararg{AbstractArray,K}) where {F,K}
+@inline Base.map(
+  f::F,
+  A::AbstractStrideArray,
+  B::StaticArray,
+  args::Vararg{AbstractArray,K},
+) where {F,K} = gc_preserve_map!(f, A, B, args...)
+@inline function Base.map(
+  f::F,
+  A::AbstractStrideArray,
+  B::SArray,
+  args::Vararg{AbstractArray,K},
+) where {F,K}
   BM = MArray(B)
   gc_preserve_map!(f, A, BM, args...)
 end
@@ -79,33 +88,69 @@ import Statistics, VectorizedStatistics
 for (op, r) ∈ ((:max, :maximum), (:min, :minimum))
   vr = Symbol('v', r)
   @eval begin
-    @inline function Base.reduce(::typeof($op), A::AbstractStrideArray{<:Number}; dim = (:), dims = (:))
+    @inline function Base.reduce(
+      ::typeof($op),
+      A::AbstractStrideArray{<:Number};
+      dim = (:),
+      dims = (:),
+    )
       @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
     end
-    @inline function Base.$r(A::AbstractStrideArray; dim=(:), dims = (:))
+    @inline function Base.$r(A::AbstractStrideArray; dim = (:), dims = (:))
       @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
     end
   end
 end
 
 
-@inline Base.reduce(::typeof(+), A::AbstractStrideArray{<:Number}; dim = :, dims = :, multithreaded = False()) =
-  @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
-@inline Base.sum(A::AbstractStrideArray; dim=:, dims = :, multithreaded = False()) =
+@inline Base.reduce(
+  ::typeof(+),
+  A::AbstractStrideArray{<:Number};
+  dim = :,
+  dims = :,
+  multithreaded = False(),
+) = @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
+@inline Base.sum(A::AbstractStrideArray; dim = :, dims = :, multithreaded = False()) =
   @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
 
-@inline Statistics.mean(A::AbstractStrideArray; dim=:, dims = :, multithreaded = False()) =
-  @gc_preserve VectorizedStatistics.vmean(A; dim, dims, multithreaded)
-@inline Statistics.std(A::AbstractStrideArray; dim=:, dims = :, mean=nothing, corrected=true, multithreaded = False()) =
-  @gc_preserve VectorizedStatistics.vstd(A; dim, dims, mean, corrected, multithreaded)
-@inline Statistics.var(A::AbstractStrideArray; dim=:, dims = :, mean=nothing, corrected=true, multithreaded = False()) =
-  @gc_preserve VectorizedStatistics.vvar(A; dim, dims, mean, corrected, multithreaded)
+@inline Statistics.mean(
+  A::AbstractStrideArray;
+  dim = :,
+  dims = :,
+  multithreaded = False(),
+) = @gc_preserve VectorizedStatistics.vmean(A; dim, dims, multithreaded)
+@inline Statistics.std(
+  A::AbstractStrideArray;
+  dim = :,
+  dims = :,
+  mean = nothing,
+  corrected = true,
+  multithreaded = False(),
+) = @gc_preserve VectorizedStatistics.vstd(A; dim, dims, mean, corrected, multithreaded)
+@inline Statistics.var(
+  A::AbstractStrideArray;
+  dim = :,
+  dims = :,
+  mean = nothing,
+  corrected = true,
+  multithreaded = False(),
+) = @gc_preserve VectorizedStatistics.vvar(A; dim, dims, mean, corrected, multithreaded)
 
-for f = (:cov, :cor)
+for f in (:cov, :cor)
   vf = Symbol('v', f)
   @eval begin
-    @inline Statistics.$f(x::AbstractStrideVector, y::AbstractStrideVector; corrected = true, multithreaded=False()) = @gc_preserve VectorizedStatistics.$vf(x, y, corrected, multithreaded)
-    @inline Statistics.$f(x::AbstractStrideMatrix; dims::Int=1, corrected::Bool=true,multithreaded=False()) = @gc_preserve VectorizedStatistics.$vf(x, dims, corrected, multithreaded)
+    @inline Statistics.$f(
+      x::AbstractStrideVector,
+      y::AbstractStrideVector;
+      corrected = true,
+      multithreaded = False(),
+    ) = @gc_preserve VectorizedStatistics.$vf(x, y, corrected, multithreaded)
+    @inline Statistics.$f(
+      x::AbstractStrideMatrix;
+      dims::Int = 1,
+      corrected::Bool = true,
+      multithreaded = False(),
+    ) = @gc_preserve VectorizedStatistics.$vf(x, dims, corrected, multithreaded)
   end
 end
 

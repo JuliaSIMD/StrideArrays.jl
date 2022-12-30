@@ -1,9 +1,15 @@
 using VectorizedRNG: local_rng
 
-@inline function Random.rand!(A::AbstractStrideArray, args::Vararg{Union{Number,AbstractArray},K}) where {K}
+@inline function Random.rand!(
+  A::AbstractStrideArray,
+  args::Vararg{Union{Number,AbstractArray},K},
+) where {K}
   rand!(local_rng(), A, args...)
 end
-@inline function Random.randn!(A::AbstractStrideArray, args::Vararg{Union{Number,AbstractArray},K}) where {K}
+@inline function Random.randn!(
+  A::AbstractStrideArray,
+  args::Vararg{Union{Number,AbstractArray},K},
+) where {K}
   randn!(local_rng(), A, args...)
 end
 ## ignore type...
