@@ -17,8 +17,6 @@ using StrideArrays, Test
   A .= zero(eltype(A))
   @test all(==(0), A)
 
-
-
   u1 = StrideArray(ones(1, 10), (static(1), 10))
   u2 = StrideArray(collect(2:2:20)', (static(1), 10))
   u3 = StrideArray(ones(2, 10), (static(2), 10))

@@ -9,7 +9,6 @@ function test_fixed_size(A, At, B, Bt, Aa, Aat, Ba, Bat)::NTuple{4,Float64}
   t0, t1, t2, t3
 end
 
-
 function test_fixed_size(M, K, N)
   A = @StrideArray rand(M, K)
   B = @StrideArray rand(K, N)
@@ -28,7 +27,7 @@ function test_fixed_size(M, K, N)
     Aa,
     Aat,
     Ba,
-    Bat,
+    Bat
   )
   t2 = test_fixed_size(
     A,
@@ -38,7 +37,7 @@ function test_fixed_size(M, K, N)
     Aa,
     Aat,
     Ba,
-    Bat,
+    Bat
   )
   t3 = test_fixed_size(
     StrideArrays.make_dynamic(A),
@@ -48,7 +47,7 @@ function test_fixed_size(M, K, N)
     Aa,
     Aat,
     Ba,
-    Bat,
+    Bat
   )
   gflops = let gflop = 2e-9M * K * N
     map((t0, t1, t2, t3)) do t

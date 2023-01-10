@@ -3,7 +3,12 @@ module StrideArrays
 # Write your package code here.
 
 using VectorizationBase,
-  ArrayInterface, SLEEFPirates, VectorizedRNG, LoopVectorization, LinearAlgebra, Random#, StackPointers#,
+  ArrayInterface,
+  SLEEFPirates,
+  VectorizedRNG,
+  LoopVectorization,
+  LinearAlgebra,
+  Random#, StackPointers#,
 # SpecialFunctions # Perhaps there is a better way to support erf?
 
 using VectorizationBase:
@@ -19,7 +24,15 @@ using VectorizationBase:
 using LoopVectorization: CloseOpen
 using Static: StaticInt, Zero, One, StaticBool, True, False, known, static
 using ArrayInterface:
-  size, strides, offsets, indices, static_length, axes, dense_dims, stride_rank, StrideIndex
+  size,
+  strides,
+  offsets,
+  indices,
+  static_length,
+  axes,
+  dense_dims,
+  stride_rank,
+  StrideIndex
 using StrideArraysCore:
   AbstractStrideArray,
   AbstractStrideMatrix,
@@ -61,9 +74,7 @@ include("blas.jl")
 include("broadcast.jl")
 include("miscellaneous.jl")
 
-
 # include("precompile.jl")
 # _precompile_()
-
 
 end

@@ -13,7 +13,7 @@ end
 @generated function gc_preserve_map!(
   f::F,
   A::AbstractStrideArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,K}
   gc_preserve_call_expr(:(vmap!(f, A)), K)
 end
@@ -22,7 +22,7 @@ end
   f::F,
   A::AbstractStrideArray,
   arg1::AbstractArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,K} = gc_preserve_map!(f, A, arg1, args...)
 # these two definitions are to avoid ambiguities
 @inline Base.map!(f::F, A::AbstractStrideArray, arg::AbstractArray) where {F} =
@@ -31,22 +31,25 @@ end
   f::F,
   A::AbstractStrideArray,
   arg1::AbstractArray,
-  arg2::AbstractArray,
+  arg2::AbstractArray
 ) where {F} = gc_preserve_map!(f, A, arg1, arg2)
-@inline Base.map(f::F, A::AbstractStrideArray, args::Vararg{Any,K}) where {F,K} =
-  gc_preserve_map!(f, A, args...)
+@inline Base.map(
+  f::F,
+  A::AbstractStrideArray,
+  args::Vararg{Any,K}
+) where {F,K} = gc_preserve_map!(f, A, args...)
 using StaticArraysCore: StaticArray, SArray, MArray
 @inline Base.map(
   f::F,
   A::AbstractStrideArray,
   B::StaticArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,K} = gc_preserve_map!(f, A, B, args...)
 @inline function Base.map(
   f::F,
   A::AbstractStrideArray,
   B::SArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,K}
   BM = MArray(B)
   gc_preserve_map!(f, A, BM, args...)
@@ -59,7 +62,7 @@ end
   f::F,
   op::O,
   A::AbstractStrideArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,O,K}
   gc_preserve_call_expr(:(vmapreduce(f, op, A)), K)
 end
@@ -67,7 +70,7 @@ end
   f::F,
   op::O,
   A::AbstractStrideArray,
-  args::Vararg{AbstractArray,K},
+  args::Vararg{AbstractArray,K}
 ) where {F,O,K} = gc_preserve_mapreduce(f, op, A, args...)
 @inline function Base.mapreduce(f::F, op::O, A::AbstractStrideArray) where {F,O}
   if (LoopVectorization.check_args(A) && LoopVectorization.all_dense(A))
@@ -78,7 +81,7 @@ end
       Tuple{F,O,AbstractArray{eltype(A)}},
       f,
       op,
-      A,
+      A
     )
   end
 end
@@ -92,7 +95,7 @@ for (op, r) ∈ ((:max, :maximum), (:min, :minimum))
       ::typeof($op),
       A::AbstractStrideArray{<:Number};
       dim = (:),
-      dims = (:),
+      dims = (:)
     )
       @gc_preserve VectorizedStatistics.$vr(A; dim, dims)
     end
@@ -102,22 +105,25 @@ for (op, r) ∈ ((:max, :maximum), (:min, :minimum))
   end
 end
 
-
 @inline Base.reduce(
   ::typeof(+),
   A::AbstractStrideArray{<:Number};
   dim = :,
   dims = :,
-  multithreaded = False(),
+  multithreaded = False()
 ) = @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
-@inline Base.sum(A::AbstractStrideArray; dim = :, dims = :, multithreaded = False()) =
-  @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
+@inline Base.sum(
+  A::AbstractStrideArray;
+  dim = :,
+  dims = :,
+  multithreaded = False()
+) = @gc_preserve VectorizedStatistics.vsum(A; dim, dims, multithreaded)
 
 @inline Statistics.mean(
   A::AbstractStrideArray;
   dim = :,
   dims = :,
-  multithreaded = False(),
+  multithreaded = False()
 ) = @gc_preserve VectorizedStatistics.vmean(A; dim, dims, multithreaded)
 @inline Statistics.std(
   A::AbstractStrideArray;
@@ -125,16 +131,30 @@ end
   dims = :,
   mean = nothing,
   corrected = true,
-  multithreaded = False(),
-) = @gc_preserve VectorizedStatistics.vstd(A; dim, dims, mean, corrected, multithreaded)
+  multithreaded = False()
+) = @gc_preserve VectorizedStatistics.vstd(
+  A;
+  dim,
+  dims,
+  mean,
+  corrected,
+  multithreaded
+)
 @inline Statistics.var(
   A::AbstractStrideArray;
   dim = :,
   dims = :,
   mean = nothing,
   corrected = true,
-  multithreaded = False(),
-) = @gc_preserve VectorizedStatistics.vvar(A; dim, dims, mean, corrected, multithreaded)
+  multithreaded = False()
+) = @gc_preserve VectorizedStatistics.vvar(
+  A;
+  dim,
+  dims,
+  mean,
+  corrected,
+  multithreaded
+)
 
 for f in (:cov, :cor)
   vf = Symbol('v', f)
@@ -143,20 +163,20 @@ for f in (:cov, :cor)
       x::AbstractStrideVector,
       y::AbstractStrideVector;
       corrected = true,
-      multithreaded = False(),
+      multithreaded = False()
     ) = @gc_preserve VectorizedStatistics.$vf(x, y, corrected, multithreaded)
     @inline Statistics.$f(
       x::AbstractStrideMatrix;
       dims::Int = 1,
       corrected::Bool = true,
-      multithreaded = False(),
+      multithreaded = False()
     ) = @gc_preserve VectorizedStatistics.$vf(x, dims, corrected, multithreaded)
   end
 end
 
 function Base.copyto!(
   B::AbstractStrideArray{<:Any,N},
-  A::AbstractStrideArray{<:Any,N},
+  A::AbstractStrideArray{<:Any,N}
 ) where {N}
   @turbo for I ∈ eachindex(A, B)
     B[I] = A[I]
@@ -165,7 +185,10 @@ function Base.copyto!(
 end
 
 # why not `vmapreduce`?
-@inline function Base.maximum(::typeof(abs), A::AbstractStrideArray{T}) where {T}
+@inline function Base.maximum(
+  ::typeof(abs),
+  A::AbstractStrideArray{T}
+) where {T}
   s = typemin(T)
   @turbo for i ∈ eachindex(A)
     s = max(s, abs(A[i]))
@@ -191,13 +214,18 @@ end
   C
 end
 
-
-@inline function make_stride_dynamic(p::StridedPointer{T,N,C,B,R}) where {T,N,C,B,R}
+@inline function make_stride_dynamic(
+  p::StridedPointer{T,N,C,B,R}
+) where {T,N,C,B,R}
   si = StrideIndex{N,R,C}(map(Int, strides(p)), offsets(p))
   stridedpointer(pointer(p), si, StaticInt{B}())
 end
 @inline function make_dynamic(A::PtrArray)
-  PtrArray(make_stride_dynamic(stridedpointer(A)), Base.size(A), val_dense_dims(A))
+  PtrArray(
+    make_stride_dynamic(stridedpointer(A)),
+    Base.size(A),
+    val_dense_dims(A)
+  )
 end
 @inline function make_dynamic(A::StrideArray)
   StrideArray(make_dynamic(PtrArray(A)), A.data)

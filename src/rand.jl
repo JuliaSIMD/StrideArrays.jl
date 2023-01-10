@@ -2,19 +2,19 @@ using VectorizedRNG: local_rng
 
 @inline function Random.rand!(
   A::AbstractStrideArray,
-  args::Vararg{Union{Number,AbstractArray},K},
+  args::Vararg{Union{Number,AbstractArray},K}
 ) where {K}
   rand!(local_rng(), A, args...)
 end
 @inline function Random.randn!(
   A::AbstractStrideArray,
-  args::Vararg{Union{Number,AbstractArray},K},
+  args::Vararg{Union{Number,AbstractArray},K}
 ) where {K}
   randn!(local_rng(), A, args...)
 end
 ## ignore type...
-@inline Random.rand!(A::AbstractStrideArray, ::Type{T}) where {T} = rand!(local_rng(), A)
-
+@inline Random.rand!(A::AbstractStrideArray, ::Type{T}) where {T} =
+  rand!(local_rng(), A)
 
 function rand_expr(expr, args...)
   array = :(StrideArray(undef))
@@ -23,7 +23,10 @@ function rand_expr(expr, args...)
     if aᵢ isa Integer
       push!(array.args, StaticInt(Int(aᵢ)))
     elseif Meta.isexpr(aᵢ, :$, 1)
-      push!(array.args, Expr(:call, GlobalRef(StrideArrays, :StaticInt), (only(aᵢ.args))))
+      push!(
+        array.args,
+        Expr(:call, GlobalRef(StrideArrays, :StaticInt), (only(aᵢ.args)))
+      )
     else
       push!(array.args, esc(aᵢ))
     end

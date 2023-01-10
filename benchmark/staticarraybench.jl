@@ -89,14 +89,25 @@ function pick_suffix(desc = "")
   "$(Sys.CPU_NAME)_$suffix"
 end
 
-dfs = stack(df, matmulmethodnames, variable_name = :MatMulType, value_name = :GFLOPS);
+dfs = stack(
+  df,
+  matmulmethodnames;
+  variable_name = :MatMulType,
+  value_name = :GFLOPS
+);
 p =
-  dfs |>
-  @vlplot(:line, x = :Size, y = :GFLOPS, width = 900, height = 600, color = {:MatMulType});
+  dfs |> @vlplot(
+    :line,
+    x = :Size,
+    y = :GFLOPS,
+    width = 900,
+    height = 600,
+    color = {:MatMulType}
+  );
 save(
   joinpath(
     pkgdir(StrideArrays),
-    "docs/src/assets/sizedarraybenchmarks_$(pick_suffix()).svg",
+    "docs/src/assets/sizedarraybenchmarks_$(pick_suffix()).svg"
   ),
-  p,
+  p
 )

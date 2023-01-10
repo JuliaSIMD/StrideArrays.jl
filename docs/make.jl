@@ -9,7 +9,7 @@ makedocs(;
   format = Documenter.HTML(;
     prettyurls = get(ENV, "CI", "false") == "true",
     canonical = "https://JuliaSIMD.github.io/StrideArrays.jl",
-    assets = String[],
+    assets = String[]
   ),
   pages = [
     "Home" => "index.md",
@@ -18,9 +18,9 @@ makedocs(;
       ["arches/cascadelake.md", "arches/tigerlake.md", "arches/haswell.md"],
     "Random Number Generation" => "rng.md",
     "Broadcasting" => "broadcasting.md",
-    "Stack Allocation" => "stack_allocation.md",
+    "Stack Allocation" => "stack_allocation.md"
   ],
-  strict = false,
+  strict = false
 )
 
 deploydocs(; repo = "github.com/JuliaSIMD/StrideArrays.jl")
