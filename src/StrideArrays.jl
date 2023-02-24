@@ -28,7 +28,6 @@ using ArrayInterface:
   strides,
   offsets,
   indices,
-  static_length,
   axes,
   dense_dims,
   stride_rank,
