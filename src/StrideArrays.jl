@@ -3,7 +3,7 @@ module StrideArrays
 # Write your package code here.
 
 using VectorizationBase,
-  ArrayInterface,
+  StaticArrayInterface,
   SLEEFPirates,
   VectorizedRNG,
   LoopVectorization,
@@ -23,16 +23,17 @@ using VectorizationBase:
   preserve_buffer
 using LoopVectorization: CloseOpen
 using Static: StaticInt, Zero, One, StaticBool, True, False, known, static
-using ArrayInterface:
-  size,
-  strides,
+using StaticArrayInterface:
+  static_size,
+  static_strides,
   offsets,
   indices,
   static_length,
-  axes,
+  static_axes,
   dense_dims,
   stride_rank,
   StrideIndex
+const ArrayInterface = StaticArrayInterface
 using StrideArraysCore:
   AbstractStrideArray,
   AbstractStrideMatrix,

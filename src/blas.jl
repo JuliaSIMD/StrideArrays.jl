@@ -39,8 +39,8 @@
   A::AbstractStrideMatrix{TA},
   B::AbstractStrideMatrix{TB}
 ) where {TA<:Base.HWReal,TB<:Base.HWReal}
-  M, KA = size(A)
-  KB, N = size(B)
+  M, KA = static_size(A)
+  KB, N = static_size(B)
   @assert KA == KB "Size mismatch."
   K = Octavian._select(KA, KB)
   TC = promote_type(TA, TB)

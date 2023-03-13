@@ -1,11 +1,11 @@
 
 @noinline function dostuff(A; B = I)
-  StrideArrays.@avx for i in eachindex(A)
+  StrideArrays.@turbo for i in eachindex(A)
     A[i] += 1
   end
   C = A * B
   s = zero(eltype(C))
-  StrideArrays.@avx for i in eachindex(C)
+  StrideArrays.@turbo for i in eachindex(C)
     s += C[i]
   end
   s
@@ -25,19 +25,19 @@ foo(x, f) = f(x)
   @test iszero(@allocated gc_preserve_test())
 
   A = @StrideArray rand($(5 << 1), $(1 << 3))
-  @test StrideArrays.size(A) === (StaticInt(10), StaticInt(8))
+  @test StrideArrays.static_size(A) === (StaticInt(10), StaticInt(8))
   A_u = view(A, StaticInt(1):StaticInt(6), :)
   A_l = view(A, StaticInt(7):StaticInt(10), :)
   @test A == @inferred(vcat(A_u, A_l))
-  @test StrideArrays.size(A) === StrideArrays.size(vcat(A_u, A_l))
+  @test StrideArrays.static_size(A) === StrideArrays.static_size(vcat(A_u, A_l))
 
   # On 1.5 tests fail if you don't do this first.
   @test pointer(view(A, 1:StaticInt(6), :)) == pointer(A)
   A_u = view(A, 1:StaticInt(6), :)
   A_l = view(A, StaticInt(7):StaticInt(10), :)
   @test A == @inferred(vcat(A_u, A_l))
-  @test StrideArrays.size(A) == StrideArrays.size(vcat(A_u, A_l))
-  @test StrideArrays.size(A) !== StrideArrays.size(vcat(A_u, A_l))
+  @test StrideArrays.static_size(A) == StrideArrays.static_size(vcat(A_u, A_l))
+  @test StrideArrays.static_size(A) !== StrideArrays.static_size(vcat(A_u, A_l))
 
   Aa = Array(A)
   @test sum(A) ≈ sum(Aa)

@@ -1,12 +1,12 @@
 
 # const TRAVIS_SKIP = VERSION.minor != 4 && !isnothing(get(ENV, "TRAVIS_BRANCH", nothing))
 
-function test_fixed_size(A, At, B, Bt, Aa, Aat, Ba, Bat)::NTuple{4,Float64}
-  t0 = @elapsed(@test Aa * Ba ≈ A * B)
-  t1 = @elapsed(@test Aa * Bat ≈ A * Bt)
-  t2 = @elapsed(@test Aat * Ba ≈ At * B)
-  t3 = @elapsed(@test Aat * Bat ≈ At * Bt)
-  t0, t1, t2, t3
+function test_fixed_size(A, At, B, Bt, Aa, Aat, Ba, Bat)
+  @test Aa * Ba ≈ A * B
+  @test Aa * Bat ≈ A * Bt
+  @test Aat * Ba ≈ At * B
+  @test Aat * Bat ≈ At * Bt
+  nothing
 end
 
 function test_fixed_size(M, K, N)
@@ -18,8 +18,8 @@ function test_fixed_size(M, K, N)
   Ba = Array(B)
   Aat = Array(At)
   Bat = Array(Bt)
-  t0 = test_fixed_size(A, At, B, Bt, Aa, Aat, Ba, Bat)
-  t1 = test_fixed_size(
+  test_fixed_size(A, At, B, Bt, Aa, Aat, Ba, Bat)
+  test_fixed_size(
     StrideArrays.make_dynamic(A),
     StrideArrays.make_dynamic(At),
     B,
@@ -29,7 +29,7 @@ function test_fixed_size(M, K, N)
     Ba,
     Bat
   )
-  t2 = test_fixed_size(
+  test_fixed_size(
     A,
     At,
     StrideArrays.make_dynamic(B),
@@ -39,7 +39,7 @@ function test_fixed_size(M, K, N)
     Ba,
     Bat
   )
-  t3 = test_fixed_size(
+  test_fixed_size(
     StrideArrays.make_dynamic(A),
     StrideArrays.make_dynamic(At),
     StrideArrays.make_dynamic(B),
@@ -49,12 +49,6 @@ function test_fixed_size(M, K, N)
     Ba,
     Bat
   )
-  gflops = let gflop = 2e-9M * K * N
-    map((t0, t1, t2, t3)) do t
-      gflop ./ t
-    end
-  end
-  @show (M, K, N), gflops
   nothing
 end
 
