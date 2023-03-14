@@ -11,9 +11,9 @@
 # @inline _select(_, ::StaticInt{M}) where {M} = StaticInt{M}()
 # @inline _select(x, _) = x
 # @inline function matmul_sizes(C,A,B)
-#     MC, NC = size(C)
-#     MA, KA = size(A)
-#     KB, NB = size(B)
+#     MC, NC = static_size(C)
+#     MA, KA = static_size(A)
+#     KB, NB = static_size(B)
 #     @assert ((MC == MA) & (KA == KB) & (NC == NB)) "Size mismatch."
 #     (_select(MA, MC), _select(KA, KB), _select(NB, NC))
 # end

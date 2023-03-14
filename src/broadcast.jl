@@ -144,7 +144,7 @@ function Base.similar(
   bc::Base.Broadcast.Broadcasted{FS},
   ::Type{T}
 ) where {S,T,N,FS<:AbstractStrideStyle{S,N}}
-  StrideArray{T}(undef, to_tuple(S, size(bc)))
+  StrideArray{T}(undef, to_tuple(S, static_size(bc)))
 end
 @generated function to_tuple(::Type{S}) where {N,S<:Tuple{Vararg{StaticInt,N}}}
   map(StaticInt, known(S))

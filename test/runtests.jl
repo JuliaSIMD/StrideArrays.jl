@@ -1,5 +1,6 @@
-using StrideArrays, LinearAlgebra, Aqua, ArrayInterface
+using StrideArrays, LinearAlgebra, Aqua, StaticArrayInterface
 using Test
+const ArrayInterface = StaticArrayInterface
 
 import InteractiveUtils
 InteractiveUtils.versioninfo(stdout; verbose = true)

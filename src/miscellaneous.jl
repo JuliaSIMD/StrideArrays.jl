@@ -197,18 +197,18 @@ end
 end
 
 @inline function Base.vcat(A::AbstractStrideMatrix, B::AbstractStrideMatrix)
-  MA, NA = size(A)
-  MB, NB = size(B)
+  MA, NA = static_size(A)
+  MB, NB = static_size(B)
   @assert NA == NB
   TC = promote_type(eltype(A), eltype(B))
   C = StrideArray{TC}(undef, (MA + MB, NA))
   # TODO: Actually handle offsets
   @assert offsets(A) === offsets(B)
   @assert offsets(A) === offsets(C)
-  @turbo for j ∈ axes(A, 2), i ∈ axes(A, 1)
+  @turbo for j ∈ static_axes(A, 2), i ∈ static_axes(A, 1)
     C[i, j] = A[i, j]
   end
-  @turbo for j ∈ axes(B, 2), i ∈ axes(B, 1)
+  @turbo for j ∈ static_axes(B, 2), i ∈ static_axes(B, 1)
     C[i+MA, j] = B[i, j]
   end
   C
@@ -217,7 +217,7 @@ end
 @inline function make_stride_dynamic(
   p::StridedPointer{T,N,C,B,R}
 ) where {T,N,C,B,R}
-  si = StrideIndex{N,R,C}(map(Int, strides(p)), offsets(p))
+  si = StrideIndex{N,R,C}(map(Int, static_strides(p)), offsets(p))
   stridedpointer(pointer(p), si, StaticInt{B}())
 end
 @inline function make_dynamic(A::PtrArray)
