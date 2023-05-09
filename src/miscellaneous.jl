@@ -4,7 +4,7 @@ function gc_preserve_call_expr(c, K)
   for k ∈ 1:K
     push!(c.args, :(@inbounds(args[$k])))
   end
-  push!(q.args, gc_preserve_call(c, 1))
+  push!(q.args, gc_preserve_call(c, 1, false))
   push!(q.args, :A)
   q
 end

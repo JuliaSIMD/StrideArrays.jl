@@ -84,4 +84,12 @@ foo(x, f) = f(x)
       @test dst == dst_ptr
     end
   end
+
+  x = Vector{Float64}(undef, 100)
+  GC.@preserve x begin
+    A = PtrArray(a)
+    B = rand(100)
+    map!(x -> x + 1, A, B)
+    @test x == B .+1
+  end
 end
