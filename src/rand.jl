@@ -46,6 +46,8 @@ function rand_expr(expr, args...)
   end
 end
 
+zeros!(A::AbstractStrideArray) = fill!(A, zero(eltype(A)))
+
 """
     @StrideArray rand(Float32, 3, 4)
     @StrideArray randn($(7>>1),  4)

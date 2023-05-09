@@ -44,6 +44,7 @@ using StrideArraysCore:
   StrideVector,
   StrideMatrix,
   similar_layout,
+  gc_preserve_call,
   @gc_preserve
 
 using Octavian
