@@ -90,6 +90,6 @@ foo(x, f) = f(x)
     A = PtrArray(a)
     B = rand(100)
     map!(x -> x + 1, A, B)
-    @test x == B .+1
+    @test x == B .+ 1
   end
 end
