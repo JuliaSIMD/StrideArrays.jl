@@ -15,6 +15,7 @@ function gc_preserve_test()
   B = @StrideArray rand($(1 << 3), 8)
   @gc_preserve dostuff(A, B = B)
 end
+alloctest() = @allocated gc_preserve_test()
 foo(x, f) = f(x)
 
 @testset "Miscellaneous" begin
@@ -22,7 +23,7 @@ foo(x, f) = f(x)
   @test maximum(abs, x) == maximum(abs, Array(x))
   y = @StrideArray rand(3)
   @test maximum(abs, y) == maximum(abs, Array(y))
-  @test iszero(@allocated gc_preserve_test())
+  @test iszero(alloctest())
 
   A = @StrideArray rand($(5 << 1), $(1 << 3))
   @test StrideArrays.static_size(A) === (StaticInt(10), StaticInt(8))
@@ -63,16 +64,17 @@ foo(x, f) = f(x)
     @test exp(B) ≈ exp(Array(B))
   end
 
-  C = @StrideArray rand(10, 10)
-  Ca = Array(C)
-  @test sum(C) ≈ sum(Ca)
-  @test sum(view(C, :, :)) ≈ sum(C[:, :]) ≈ sum(view(Ca, :, :))
-  @test sum(view(C, static(1):static(2), :)) ≈
-        sum(C[static(1):static(2), :]) ≈
-        sum(view(Ca, static(1):static(2), :))
-  @test C[static(1):static(2), :] === view(C, static(1):static(2), :)
-  @test view(C, :, :) === C[:, :]
-
+  let C = @StrideArray rand(10, 10)
+    Ca = Array(C)
+    @test sum(C) ≈ sum(Ca)
+    @test sum(view(C, :, :)) ≈ sum(C[:, :]) ≈ sum(view(Ca, :, :))
+    @test sum(view(C, static(1):static(2), :)) ≈
+          sum(C[static(1):static(2), :]) ≈
+          sum(view(Ca, static(1):static(2), :)) ≈
+          sum(view(Ca, 1:2, :))
+    @test C[static(1):static(2), :] === view(C, static(1):static(2), :)
+    @test view(C, :, :) === C[:, :]
+  end
   let
     src1 = rand(10) .* 2 .- 1
     dst = zero(src1)
