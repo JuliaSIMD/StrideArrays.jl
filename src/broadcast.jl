@@ -9,7 +9,7 @@ struct LinearStyle{S,N,R} <: AbstractStrideStyle{S,N} end
 struct CartesianStyle{S,N} <: AbstractStrideStyle{S,N} end
 @generated function Base.BroadcastStyle(
   ::Type{A}
-) where {T,N,R,S,X,A<:AbstractStrideArray{T,N,R,S,X}}
+) where {T<:VectorizationBase.NativeTypes,N,R,S,X,A<:AbstractStrideArray{T,N,R,S,X}}
   t = Expr(:curly, :Tuple)
   for x ∈ X.parameters
     x === nothing || return CartesianStyle{S,N}()
@@ -19,44 +19,20 @@ struct CartesianStyle{S,N} <: AbstractStrideStyle{S,N} end
   end
   :(LinearStyle{$t,$N,$R}())
 end
-# Base.BroadcastStyle(::Type{A}) where {S,T,N,X,SN,XN,A<:AbstractStrideArray{S,T,N,X,SN,XN,true}} = CartesianStyle{S,N}()
-# function reverse_simplevec(S, N = length(S))
-#     Srev = Expr(:curly, :Tuple)
-#     for n ∈ 1:N
-#         push!(Srev.args, S.parameters[N + 1 - n])
-#     end
-#     if N == 1
-#         N += 1
-#         insert!(Srev.args, 2, 1)
-#     end
-#     Srev, N
-# # end
-# @generated function Base.BroadcastStyle(::Type{Adjoint{T,A}}) where {S,T,N,A<:AbstractStrideArray{S,T,N}}
-#     Srev, Nrev = reverse_simplevec(S, N)
-#     Expr(:call, Expr(:curly, :CartesianStyle, Srev, Nrev))
-# end
-# @generated function Base.BroadcastStyle(::Type{Transpose{T,A}}) where {S,T,N,A<:AbstractStrideArray{S,T,N}}
-#     Srev, Nrev = reverse_simplevec(S, N)
-#     Expr(:call, Expr(:curly, :CartesianStyle, Srev, Nrev))
-# end
 
 const StrideArrayProduct = Union{
   LoopVectorization.Product{<:AbstractStrideArray},
   LoopVectorization.Product{<:Any,<:AbstractStrideArray},
   LoopVectorization.Product{<:AbstractStrideArray,<:AbstractStrideArray}
-  # LoopVectorization.Product{Adjoint{<:Any,<:AbstractFixedSizeArray}},
-  # LoopVectorization.Product{Transpose{<:Any,<:AbstractFixedSizeArray}},
-  # LoopVectorization.Product{<:Any,Adjoint{<:Any,<:AbstractFixedSizeArray}},
-  # LoopVectorization.Product{<:Any,Transpose{<:Any,<:AbstractFixedSizeArray}}
 }
 
 @generated function Base.BroadcastStyle(
   ::Type{P}
 ) where {
   SA,
-  A<:AbstractStrideArray{<:Any,<:Any,<:Any,SA},
+  A<:AbstractStrideArray{<:VectorizationBase.NativeTypes,<:Any,<:Any,SA},
   SB,
-  B<:AbstractStrideArray{<:Any,<:Any,<:Any,SB},
+  B<:AbstractStrideArray{<:VectorizationBase.NativeTypes,<:Any,<:Any,SB},
   P<:LoopVectorization.Product{A,B}
 }
   t = Expr(:curly, :Tuple)
