@@ -5,16 +5,6 @@
 [![Build Status](https://github.com/JuliaSIMD/StrideArrays.jl/workflows/CI/badge.svg)](https://github.com/JuliaSIMD/StrideArrays.jl/actions)
 [![Coverage](https://codecov.io/gh/JuliaSIMD/StrideArrays.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaSIMD/StrideArrays.jl)
 
-
-### Caution
-
-`StrideArray`s (and `StrideArraysCore`) does not check bounds by default. To enable bounds checking (for both), define
-```julia
-StrideArraysCore.boundscheck() = true
-```
-Note, bounds checking is still disabled when using `@inbounds`, even if `boundscheck() == false`.
-Starting Julia with `--check-bounds=yes` will automatically redefine `StrideArraysCore.boundscheck() = true`.
-
 ### Use
 
 ```julia
