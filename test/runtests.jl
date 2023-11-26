@@ -14,9 +14,9 @@ const START_TIME = time()
   @time Aqua.test_all(
     StrideArrays,
     ambiguities = false,
-    project_toml_formatting = false,
+    # project_toml_formatting = false,
     deps_compat = VERSION <= v"1.8" || isempty(VERSION.prerelease),
-    piracy = false
+    piracies = false
   )
   # Currently, there are five method ambiguities:
   # (rand!(A::AbstractStrideArray, args::Vararg{Any, K}) where K in StrideArrays at StrideArrays/src/rand.jl:3, rand!(f::F, rng::VectorizedRNG.AbstractVRNG, x::AbstractArray{T}, α::Number, β, γ) where {T<:Union{Float32, Float64}, F} in VectorizedRNG at VectorizedRNG/L3orR/src/api.jl:242)
