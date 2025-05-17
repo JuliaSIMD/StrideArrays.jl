@@ -28,7 +28,6 @@ using StaticArrayInterface:
   static_strides,
   offsets,
   indices,
-  static_length,
   static_axes,
   dense_dims,
   stride_rank,
