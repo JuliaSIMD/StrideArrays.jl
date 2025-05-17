@@ -7,6 +7,8 @@ _extract(_) = nothing
 abstract type AbstractStrideStyle{S,N} <: Base.Broadcast.AbstractArrayStyle{N} end
 struct LinearStyle{S,N,R} <: AbstractStrideStyle{S,N} end
 struct CartesianStyle{S,N} <: AbstractStrideStyle{S,N} end
+LinearStyle{S,N,R}(::Val{N}) where {S,N,R} = LinearStyle{S,N,R}()
+CartesianStyle{S,N}(::Val{N}) where {S,N} = CartesianStyle{S,N}()
 @generated function Base.BroadcastStyle(
   ::Type{A}
 ) where {T<:VectorizationBase.NativeTypes,N,R,S,X,A<:AbstractStrideArray{T,N,R,S,X}}
